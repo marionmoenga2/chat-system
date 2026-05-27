@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Messages</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="chat-app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Chat System</h2>
+                <div class="user-info">
+                    <span id="current-user">Loading...</span>
+                    <button onclick="logout()" class="btn btn-small">Logout</button>
+                </div>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="user-search" placeholder="Search users..." oninput="filterUsers()">
+            </div>
+
+            <div class="users-list" id="users-list">
+                <!-- Users populated by JS -->
+            </div>
+        </aside>
+
+        <!-- Chat Area -->
+        <main class="chat-main">
+            <div class="chat-header" id="chat-header">
+                <h3>Select a user to start chatting</h3>
+            </div>
+
+            <div class="messages-container" id="messages-container">
+                <div class="empty-state">Select a user from the sidebar to view messages</div>
+            </div>
+
+            <div class="message-input-area" id="message-input-area" style="display: none;">
+                <div class="typing-indicator" id="typing-indicator"></div>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="message-input" 
+                        placeholder="Type a message..." 
+                        onkeypress="handleKeyPress(event)"
+                        oninput="handleTyping()"
+                    >
+                    <button onclick="sendMessage()" class="btn btn-send">Send</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="notification"></div>
+
+    <script src="js/api.js"></script>
+    <script src="js/chat.js"></script>
+</body>
+</html>

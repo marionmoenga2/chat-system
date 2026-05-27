@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Chat System</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-login-container">
+        <div class="login-box">
+            <h1>🔐 Admin Panel</h1>
+            <form id="adminLoginForm">
+                <div class="input-group">
+                    <input type="text" id="admin-username" placeholder="Admin Username" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="admin-password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+            <div id="error-message" class="error-message"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.user.is_admin) {
+                    localStorage.setItem('admin_token', data.access_token);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    document.getElementById('error-message').textContent = 
+                        data.user && !data.user.is_admin ? 'Access denied: Admin only' : 'Invalid credentials';
+                }
+            } catch (error) {
+                document.getElementById('error-message').textContent = 'Network error';
+            }
+        });
+    </script>
+</body>
+</html>
