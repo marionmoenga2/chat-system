@@ -9,3 +9,5 @@ websockets==13.0
 aiosqlite==0.20.0
 email-validator==2.2.0
 bcrypt==4.2.0
+psycopg2-binary==2.9.9
+gunicorn==23.0.0

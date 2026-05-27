@@ -1,25 +1,24 @@
 """
-Database configuration and session management.
-Uses SQLite for simplicity, but easily swappable with MySQL/PostgreSQL.
+Database configuration - supports SQLite (local) and PostgreSQL (production).
 """
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# SQLite database file
-SQLALCHEMY_DATABASE_URL = "sqlite:///./chat_system.db"
+# Render provides DATABASE_URL env var for PostgreSQL
+# Fallback to SQLite for local development
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./chat_system.db")
 
-# For MySQL, use:
-# SQLALCHEMY_DATABASE_URL = "mysql+pymysql://user:password@localhost/chat_db"
+# Fix for Render's postgres:// vs postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-# Dependency to get DB session
 def get_db():
     db = SessionLocal()
     try:
