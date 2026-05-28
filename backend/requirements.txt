@@ -1,9 +1,9 @@
 fastapi==0.115.6
-uvicorn[standard]==0.34.0
+uvicorn==0.34.0
 sqlalchemy==2.0.36
 pydantic==2.10.4
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+python-jose==3.3.0
+passlib==1.7.4
 python-multipart==0.0.20
 websockets==14.1
 aiosqlite==0.20.0
