@@ -1,78 +1,175 @@
 /**
  * Authentication JavaScript
  * Handles login, registration, and token storage.
- * API_URL comes from config.js.
+ * API_URL comes from config.js (must be loaded first).
  */
 
-// Toggle between login and register forms
+// ---------- Helpers ----------
+
+function showError(message, type = 'error') {
+    const errorDiv = document.getElementById('error-message');
+    if (!errorDiv) {
+        alert(message);
+        return;
+    }
+    errorDiv.textContent = message;
+    errorDiv.style.color = type === 'success' ? '#10b981' : '#ef4444';
+}
+
+function getField(id) {
+    const el = document.getElementById(id);
+    if (!el) {
+        throw new Error(`Page error: element with id "${id}" was not found in the HTML`);
+    }
+    return el.value;
+}
+
+// Turn the server's "detail" (string, or array of validation errors) into readable text
+function formatDetail(detail, fallback) {
+    if (!detail) return fallback;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+        return detail
+            .map(d => {
+                const field = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : '';
+                return field ? `${field}: ${d.msg}` : d.msg;
+            })
+            .join('; ');
+    }
+    return fallback;
+}
+
+// Send a POST request and return { ok, status, data } or throw a clear Error
+async function postJson(path, body) {
+    if (typeof API_URL === 'undefined') {
+        throw new Error('API_URL is not defined. Make sure js/config.js loads before js/auth.js');
+    }
+
+    const url = `${API_URL}${path}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000); // free Render plan can take ~60s to wake
+
+    let response;
+    try {
+        response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            signal: controller.signal
+        });
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            throw new Error('The server took too long to respond. It may be waking up, please try again.');
+        }
+        console.error('Fetch failed:', { url, err });
+        throw new Error(
+            `Cannot reach the server at ${API_URL}. ` +
+            'Possible causes: server is asleep or down, wrong URL, or CORS is blocking the request. ' +
+            'Check the browser Console for details.'
+        );
+    } finally {
+        clearTimeout(timer);
+    }
+
+    const text = await response.text();
+    let data = null;
+    try {
+        data = text ? JSON.parse(text) : null;
+    } catch (e) {
+        console.error('Non-JSON response:', { url, status: response.status, body: text.slice(0, 300) });
+        throw new Error(`Server returned an unexpected response (HTTP ${response.status}). Check the backend logs.`);
+    }
+
+    return { ok: response.ok, status: response.status, data };
+}
+
+function setBusy(form, busy) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = busy;
+}
+
+// ---------- UI ----------
+
 function toggleForms() {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     loginForm.classList.toggle('hidden');
     registerForm.classList.toggle('hidden');
-    document.getElementById('error-message').textContent = '';
+    const err = document.getElementById('error-message');
+    if (err) err.textContent = '';
 }
 
-// Handle Login
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('login-username').value;
-    const password = document.getElementById('login-password').value;
+// ---------- Login ----------
 
-    try {
-        const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await response.json();
+const loginFormEl = document.getElementById('loginForm');
+if (loginFormEl) {
+    loginFormEl.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setBusy(loginFormEl, true);
+        showError('Signing in...', 'success');
 
-        if (response.ok) {
-            localStorage.setItem('token', data.access_token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            window.location.href = 'chat.html';
-        } else {
-            showError(data.detail || 'Login failed');
+        try {
+            const username = getField('login-username');
+            const password = getField('login-password');
+
+            const { ok, status, data } = await postJson('/api/auth/login', { username, password });
+
+            if (ok && data && data.access_token) {
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = 'chat.html';
+            } else {
+                console.error('Login rejected:', status, data);
+                showError(formatDetail(data && data.detail, `Login failed (HTTP ${status})`));
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            showError(error.message);
+        } finally {
+            setBusy(loginFormEl, false);
         }
-    } catch (error) {
-        showError('Network error. The server may be waking up, please try again in a moment.');
-    }
-});
-
-// Handle Registration
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('reg-username').value;
-    const email = document.getElementById('reg-email').value;
-    const password = document.getElementById('reg-password').value;
-
-    try {
-        const response = await fetch(`${API_URL}/api/auth/signup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password })
-        });
-        const data = await response.json();
-
-        if (response.ok) {
-            showError('Account created! Please login.', 'success');
-            toggleForms();
-        } else {
-            showError(data.detail || 'Registration failed');
-        }
-    } catch (error) {
-        showError('Network error. The server may be waking up, please try again in a moment.');
-    }
-});
-
-function showError(message, type = 'error') {
-    const errorDiv = document.getElementById('error-message');
-    errorDiv.textContent = message;
-    errorDiv.style.color = type === 'success' ? '#10b981' : '#ef4444';
+    });
+} else {
+    console.error('Form with id "loginForm" not found in the HTML');
 }
 
-// Redirect if already logged in
-const path = window.location.pathname;
-if (localStorage.getItem('token') && (path === '/' || path.endsWith('index.html'))) {
+// ---------- Registration ----------
+
+const registerFormEl = document.getElementById('registerForm');
+if (registerFormEl) {
+    registerFormEl.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setBusy(registerFormEl, true);
+        showError('Creating account...', 'success');
+
+        try {
+            const username = getField('reg-username');
+            const email = getField('reg-email');
+            const password = getField('reg-password');
+
+            const { ok, status, data } = await postJson('/api/auth/signup', { username, email, password });
+
+            if (ok) {
+                showError('Account created! Please log in.', 'success');
+                toggleForms();
+            } else {
+                console.error('Registration rejected:', status, data);
+                showError(formatDetail(data && data.detail, `Registration failed (HTTP ${status})`));
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            showError(error.message);
+        } finally {
+            setBusy(registerFormEl, false);
+        }
+    });
+} else {
+    console.error('Form with id "registerForm" not found in the HTML');
+}
+
+// ---------- Redirect if already logged in ----------
+
+const currentPath = window.location.pathname;
+if (localStorage.getItem('token') && (currentPath === '/' || currentPath.endsWith('index.html'))) {
     window.location.href = 'chat.html';
 }
