@@ -262,13 +262,31 @@ body {
     display: flex;
     flex-direction: column;
     background-color: var(--chat-bg);
+    min-width: 0;
 }
 
 .chat-header {
+    display: flex;
+    align-items: center;
     padding: 1rem 1.5rem;
     background-color: white;
     border-bottom: 1px solid var(--border-color);
     box-shadow: var(--shadow);
+}
+
+.chat-header-info h3 {
+    margin: 0;
+}
+
+.back-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0 12px 0 0;
+    cursor: pointer;
+    color: var(--text-primary);
 }
 
 .messages-container {
@@ -292,6 +310,7 @@ body {
     border-radius: 12px;
     position: relative;
     animation: fadeIn 0.3s ease;
+    overflow-wrap: anywhere;
 }
 
 .message.sent {
@@ -343,6 +362,7 @@ body {
 
 .input-wrapper input {
     flex: 1;
+    min-width: 0;
     padding: 0.75rem 1rem;
     border: 2px solid var(--border-color);
     border-radius: 24px;
@@ -385,33 +405,71 @@ body {
 }
 
 /* ============================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN (MOBILE)
    ============================================ */
 
 @media (max-width: 768px) {
+    body,
+    .auth-container {
+        height: 100vh;
+        height: 100dvh; /* accounts for the mobile browser address bar */
+    }
+
+    .chat-app {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* The user list fills the screen by default */
     .sidebar {
-        position: absolute;
         width: 100%;
         height: 100%;
-        z-index: 10;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
+        border-right: none;
     }
-    
-    .sidebar.open {
-        transform: translateX(0);
-    }
-    
+
+    /* The conversation is hidden until a user is selected */
     .chat-main {
+        display: none;
         width: 100%;
+        height: 100%;
     }
-    
+
+    .chat-app.chat-open .sidebar {
+        display: none;
+    }
+
+    .chat-app.chat-open .chat-main {
+        display: flex;
+    }
+
+    .back-btn {
+        display: inline-block;
+    }
+
     .message {
         max-width: 85%;
     }
-    
+
+    .message-input-area {
+        padding: 0.75rem 1rem;
+    }
+
     .auth-box {
         margin: 1rem;
         padding: 1.5rem;
+    }
+
+    .notification {
+        left: 10px;
+        right: 10px;
+        top: 10px;
+    }
+
+    /* 16px stops iOS from zooming in when an input is tapped */
+    .input-group input,
+    .search-box input,
+    .input-wrapper input {
+        font-size: 16px;
     }
 }
