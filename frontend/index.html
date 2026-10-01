@@ -10,7 +10,7 @@
     <div class="auth-container">
         <div class="auth-box">
             <h1>💬 Chat System</h1>
-            
+
             <!-- Login Form -->
             <div id="login-form" class="form-section">
                 <h2>Login</h2>
@@ -22,7 +22,7 @@
                         <input type="password" id="login-password" placeholder="Password" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Login</button>
-                    <p class="toggle-text">Don't have an account? <a href="#" onclick="toggleForms()">Sign up</a></p>
+                    <p class="toggle-text">Don't have an account? <a href="#" onclick="toggleForms(); return false;">Sign up</a></p>
                 </form>
             </div>
 
@@ -40,7 +40,7 @@
                         <input type="password" id="reg-password" placeholder="Password" required minlength="6">
                     </div>
                     <button type="submit" class="btn btn-primary">Sign Up</button>
-                    <p class="toggle-text">Already have an account? <a href="#" onclick="toggleForms()">Login</a></p>
+                    <p class="toggle-text">Already have an account? <a href="#" onclick="toggleForms(); return false;">Login</a></p>
                 </form>
             </div>
 
@@ -48,6 +48,8 @@
         </div>
     </div>
 
+    <!-- config.js must load first: it defines API_URL and WS_URL -->
+    <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
 </body>
 </html>
