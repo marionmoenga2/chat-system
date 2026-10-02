@@ -1,47 +1,46 @@
 /**
- * API Utility Functions
- * Centralized fetch wrapper with authentication headers.
+ * API helpers: authenticated requests to the backend.
+ * API_URL comes from config.js (must be loaded first).
  */
 
-const API_BASE = 'http://localhost:8000';
-
-// Get auth headers
 function getHeaders() {
     const token = localStorage.getItem('token');
     return {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
 }
 
-// Authenticated GET request
-async function apiGet(endpoint) {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-        method: 'GET',
-        headers: getHeaders()
-    });
-    if (response.status === 401) {
-        logout();
+// Shared request logic: returns parsed JSON, or null on failure
+async function apiRequest(method, endpoint, data) {
+    try {
+        const options = { method, headers: getHeaders() };
+        if (data !== undefined) options.body = JSON.stringify(data);
+
+        const response = await fetch(`${API_URL}${endpoint}`, options);
+
+        if (response.status === 401) {
+            logout();
+            return null;
+        }
+        if (!response.ok) {
+            console.error(`${method} ${endpoint} failed:`, response.status);
+            return null;
+        }
+        if (response.status === 204) return {};
+        return await response.json();
+    } catch (error) {
+        console.error(`${method} ${endpoint} network error:`, error);
         return null;
     }
-    return response.json();
 }
 
-// Authenticated POST request
-async function apiPost(endpoint, data) {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(data)
-    });
-    if (response.status === 401) {
-        logout();
-        return null;
-    }
-    return response.json();
-}
+const apiGet = (endpoint) => apiRequest('GET', endpoint);
+const apiPost = (endpoint, data) => apiRequest('POST', endpoint, data);
+const apiPut = (endpoint, data) => apiRequest('PUT', endpoint, data);
+const apiDelete = (endpoint) => apiRequest('DELETE', endpoint);
 
-// Logout function
+// Logout
 function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
