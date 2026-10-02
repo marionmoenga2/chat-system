@@ -170,6 +170,15 @@ if (registerFormEl) {
 // ---------- Redirect if already logged in ----------
 
 const currentPath = window.location.pathname;
-if (localStorage.getItem('token') && (currentPath === '/' || currentPath.endsWith('index.html'))) {
+const params = new URLSearchParams(window.location.search);
+
+// Visit index.html?logout=1 to wipe a stale session
+if (params.get('logout') === '1') {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+}
+
+if (localStorage.getItem('token') && localStorage.getItem('user') &&
+    (currentPath === '/' || currentPath.endsWith('index.html'))) {
     window.location.href = 'chat.html';
 }
