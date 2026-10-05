@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChatWave - Messages</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%233b82f6'/><text x='50' y='68' font-size='54' text-anchor='middle'>⚡</text></svg>">
-    <link rel="stylesheet" href="css/styles.css?v=6">
+    <link rel="stylesheet" href="css/styles.css?v=7">
 
     <style>
         /* Loaded after styles.css, so these rules override the old chat styles */
         :root {
             --cw-blue: #3b82f6;
             --cw-violet: #8b5cf6;
-            --cw-cyan: #06b6d4;
             --cw-grad: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             --cw-ink: #0f172a;
             --cw-muted: #64748b;
@@ -25,6 +24,33 @@
             background: #ffffff;
             max-width: 1400px;
             margin: 0 auto;
+        }
+
+        /* ================= AVATARS (shared) ================= */
+        .user-avatar,
+        .header-avatar,
+        .my-avatar,
+        .profile-preview {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            flex-shrink: 0;
+            background: var(--cw-grad);
+        }
+
+        .user-avatar img,
+        .header-avatar img,
+        .my-avatar img,
+        .profile-preview img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
 
         /* ================= SIDEBAR ================= */
@@ -69,18 +95,52 @@
         }
 
         .user-info {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.65rem;
             background: rgba(255, 255, 255, 0.16);
-            border-radius: 14px;
-            padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+            border-radius: 16px;
+            padding: 0.45rem 0.5rem 0.45rem 0.5rem;
             color: #fff;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.92rem;
         }
 
         .user-info #current-user {
+            flex: 1;
+            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .my-avatar {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+
+        .my-avatar:hover { transform: scale(1.06); }
+
+        .my-avatar::after {
+            content: "✎";
+            position: absolute;
+            right: -4px;
+            bottom: -4px;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            background: #fff;
+            color: #4f46e5;
+            font-size: 10px;
+            line-height: 17px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         }
 
         .user-info .btn-small {
@@ -147,20 +207,16 @@
         }
 
         .user-avatar {
-            position: relative;
             width: 46px;
             height: 46px;
             margin-right: 0.85rem;
             border-radius: 50%;
-            background: var(--cw-grad);
             font-size: 1.1rem;
-            font-weight: 700;
             box-shadow: 0 6px 14px -6px rgba(79, 70, 229, 0.55);
-            overflow: visible;
         }
 
-        /* Online dot on the avatar (needs :has, supported by modern browsers) */
-        .user-item:has(.user-status.online) .user-avatar::after {
+        /* Green dot on online users */
+        .user-item.is-online .user-avatar::after {
             content: "";
             position: absolute;
             right: -1px;
@@ -218,17 +274,7 @@
             width: 42px;
             height: 42px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-weight: 700;
-            flex-shrink: 0;
-            background: var(--cw-grad);
         }
-
-        /* the old back arrow is replaced by the mobile bar below */
-        .chat-header .back-btn { display: none !important; }
 
         /* Messages */
         .messages-container {
@@ -266,7 +312,7 @@
 
         .message {
             max-width: 68%;
-            padding: 0.6rem 0.95rem 0.45rem;
+            padding: 0.6rem 0.95rem 0.4rem;
             border-radius: 20px;
             font-size: 0.97rem;
             line-height: 1.4;
@@ -294,14 +340,88 @@
             box-shadow: 0 4px 12px -10px rgba(15, 23, 42, 0.35);
         }
 
-        /* the sender name is redundant in a one-to-one chat */
-        .message-sender { display: none; }
+        .message.flash { animation: flash 1.5s ease; }
+
+        @keyframes flash {
+            0%, 60% { box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.75); }
+            100%    { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+        }
+
+        .message-meta {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.35rem;
+            margin-top: 0.15rem;
+        }
 
         .message-time {
-            margin-top: 0.15rem;
             font-size: 0.68rem;
             opacity: 0.7;
             text-align: right;
+            margin-top: 0;
+        }
+
+        /* Reply button on each message */
+        .reply-btn {
+            width: 22px;
+            height: 22px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: inherit;
+            font-size: 0.95rem;
+            line-height: 22px;
+            text-align: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s, background-color 0.15s;
+        }
+
+        .message:hover .reply-btn,
+        .reply-btn:focus-visible { opacity: 0.85; }
+
+        .message.sent .reply-btn:hover { background: rgba(255, 255, 255, 0.25); }
+        .message.received .reply-btn:hover { background: #eef2ff; }
+
+        @media (hover: none) {
+            .reply-btn { opacity: 0.55; }
+        }
+
+        /* Quoted message inside a bubble */
+        .reply-quote {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            margin: 0 0 0.4rem;
+            padding: 0.35rem 0.6rem;
+            border-left: 3px solid var(--cw-blue);
+            border-radius: 10px;
+            background: rgba(79, 70, 229, 0.08);
+            cursor: pointer;
+        }
+
+        .message.sent .reply-quote {
+            border-left-color: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .reply-quote-name {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--cw-blue);
+        }
+
+        .message.sent .reply-quote-name { color: #fff; }
+
+        .reply-quote-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            font-size: 0.82rem;
+            opacity: 0.85;
         }
 
         /* Input bar */
@@ -319,6 +439,49 @@
             font-style: italic;
             color: var(--cw-blue);
         }
+
+        /* "Replying to ..." bar above the input */
+        .reply-bar {
+            display: none;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.55rem;
+            padding: 0.45rem 0.6rem 0.45rem 0.8rem;
+            border-left: 4px solid var(--cw-blue);
+            border-radius: 12px;
+            background: #eef2ff;
+        }
+
+        .reply-bar.show { display: flex; }
+
+        .reply-bar-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+        .reply-bar-name {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--cw-blue);
+        }
+
+        .reply-bar-text {
+            font-size: 0.85rem;
+            color: var(--cw-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .reply-bar-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.07);
+            color: var(--cw-muted);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .reply-bar-close:hover { background: rgba(15, 23, 42, 0.14); }
 
         .input-wrapper {
             display: flex;
@@ -373,6 +536,91 @@
             background: var(--cw-ink);
             box-shadow: 0 16px 32px -12px rgba(15, 23, 42, 0.5);
             font-weight: 600;
+        }
+
+        /* ================= PROFILE DIALOG ================= */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.55);
+        }
+
+        .modal-backdrop.open { display: flex; }
+
+        .modal-card {
+            width: 100%;
+            max-width: 360px;
+            padding: 1.75rem 1.5rem 1.4rem;
+            border-radius: 24px;
+            background: #fff;
+            text-align: center;
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.5);
+            animation: pop 0.25s ease;
+        }
+
+        .modal-card h3 { margin-bottom: 1.1rem; color: var(--cw-ink); }
+
+        .profile-preview {
+            width: 130px;
+            height: 130px;
+            margin: 0 auto 0.8rem;
+            border-radius: 50%;
+            font-size: 3rem;
+            box-shadow: 0 14px 28px -10px rgba(79, 70, 229, 0.55);
+        }
+
+        .profile-name {
+            margin-bottom: 1.1rem;
+            font-weight: 700;
+            color: var(--cw-ink);
+        }
+
+        .modal-card .btn {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .btn-outline {
+            background: #eef2ff;
+            color: #4338ca;
+        }
+
+        .btn-outline:hover { background: #e0e7ff; }
+
+        .btn-text-danger {
+            margin-top: 0.4rem;
+            background: transparent;
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .btn-text-danger:hover { background: #fef2f2; }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.6rem;
+            margin-top: 1.1rem;
+        }
+
+        .modal-actions .btn { flex: 1; }
+
+        .btn-ghost {
+            background: #f1f5f9;
+            color: var(--cw-muted);
+        }
+
+        .btn-ghost:hover { background: #e2e8f0; }
+
+        .modal-card .btn-primary {
+            background: var(--cw-grad);
+            color: #fff;
         }
 
         /* ================= MOBILE ================= */
@@ -448,7 +696,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .message { animation: none; }
+            .message, .modal-card, .message.flash { animation: none; }
         }
     </style>
 </head>
@@ -468,6 +716,9 @@
                     <h2>ChatWave</h2>
                 </div>
                 <div class="user-info">
+                    <button type="button" class="my-avatar" id="my-avatar"
+                            onclick="openProfile()" title="Change profile photo"
+                            aria-label="Change profile photo"></button>
                     <span id="current-user">Loading...</span>
                     <button onclick="logout()" class="btn btn-small">Logout</button>
                 </div>
@@ -510,13 +761,24 @@
 
             <div class="message-input-area" id="message-input-area" style="display: none;">
                 <div class="typing-indicator" id="typing-indicator"></div>
+
+                <!-- Shown while replying to a specific message -->
+                <div class="reply-bar" id="reply-bar">
+                    <div class="reply-bar-body">
+                        <span class="reply-bar-name" id="reply-bar-name"></span>
+                        <span class="reply-bar-text" id="reply-bar-text"></span>
+                    </div>
+                    <button type="button" class="reply-bar-close" onclick="cancelReply()"
+                            aria-label="Cancel reply">&times;</button>
+                </div>
+
                 <div class="input-wrapper">
                     <input
                         type="text"
                         id="message-input"
                         placeholder="Type a message..."
                         autocomplete="off"
-                        onkeypress="handleKeyPress(event)"
+                        onkeydown="handleKeyPress(event)"
                         oninput="handleTyping()"
                     >
                     <button onclick="sendMessage()" class="btn btn-send" aria-label="Send message">
@@ -530,78 +792,30 @@
         </main>
     </div>
 
+    <!-- Profile photo dialog -->
+    <div class="modal-backdrop" id="profile-modal" onclick="if (event.target === this) closeProfile()">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+            <h3 id="profile-title">Your profile photo</h3>
+            <div class="profile-preview" id="profile-preview"></div>
+            <p class="profile-name" id="profile-name"></p>
+
+            <input type="file" id="photo-input" accept="image/*" hidden onchange="handlePhotoSelected(event)">
+            <button type="button" class="btn btn-outline" onclick="document.getElementById('photo-input').click()">Choose a photo</button>
+            <button type="button" class="btn btn-text-danger" onclick="removeProfilePhoto()">Remove current photo</button>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" onclick="closeProfile()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-photo-btn" onclick="saveProfilePhoto()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification toast -->
     <div id="notification" class="notification"></div>
 
-    <!-- Order matters: config.js defines API_URL and WS_URL, api.js defines apiGet/logout -->
+    <!-- Order matters: config.js defines API_URL and WS_URL, api.js defines apiGet/apiPost/apiDelete/logout -->
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/chat.js"></script>
-
-    <!-- Navigation and visual touches (no changes to chat.js needed) -->
-    <script>
-        var AVATAR_COLORS = [
-            ['#3b82f6', '#8b5cf6'], ['#06b6d4', '#3b82f6'], ['#ec4899', '#f97316'],
-            ['#10b981', '#06b6d4'], ['#f59e0b', '#ef4444'], ['#8b5cf6', '#ec4899'],
-            ['#14b8a6', '#84cc16'], ['#6366f1', '#06b6d4']
-        ];
-
-        function avatarGradient(name) {
-            var h = 0;
-            for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-            var c = AVATAR_COLORS[h % AVATAR_COLORS.length];
-            return 'linear-gradient(135deg, ' + c[0] + ', ' + c[1] + ')';
-        }
-
-        // Give every avatar in the sidebar its own color
-        function colorAvatars() {
-            document.querySelectorAll('#users-list .user-item').forEach(function (item) {
-                var nameEl = item.querySelector('.user-name');
-                var av = item.querySelector('.user-avatar');
-                if (nameEl && av) av.style.background = avatarGradient(nameEl.textContent);
-            });
-        }
-
-        new MutationObserver(colorAvatars)
-            .observe(document.getElementById('users-list'), { childList: true });
-
-        // Show the selected user's avatar and group name + status in the chat header
-        function decorateHeader(user) {
-            var header = document.getElementById('chat-header');
-            if (!header || header.querySelector('.header-avatar')) return;
-
-            var h3 = header.querySelector('h3');
-            var status = header.querySelector('#header-status');
-            if (h3 && status && !header.querySelector('.chat-header-info')) {
-                var info = document.createElement('div');
-                info.className = 'chat-header-info';
-                header.insertBefore(info, h3);
-                info.appendChild(h3);
-                info.appendChild(status);
-            }
-
-            var av = document.createElement('div');
-            av.className = 'header-avatar';
-            av.textContent = user.username.charAt(0).toUpperCase();
-            av.style.background = avatarGradient(user.username);
-            header.insertBefore(av, header.firstChild);
-        }
-
-        function showSidebar() {
-            document.getElementById('chat-app').classList.remove('chat-open');
-        }
-
-        // Wrap selectUser so choosing a user opens the conversation on mobile
-        (function () {
-            var originalSelectUser = window.selectUser;
-            window.selectUser = function (user) {
-                document.getElementById('chat-app').classList.add('chat-open');
-                document.getElementById('mobile-chat-title').textContent = user.username;
-                var result = originalSelectUser(user);
-                decorateHeader(user);
-                return result;
-            };
-        })();
-    </script>
 </body>
 </html>
