@@ -1,7 +1,8 @@
 /**
  * Chat Application Logic
- * WebSocket connection, messages, replies and profile photos.
- * API_URL / WS_URL come from config.js; apiGet/apiPost/apiDelete/logout come from api.js.
+ * WebSocket connection, messages, replies, profile photos and bios.
+ * API_URL / WS_URL come from config.js;
+ * apiGet/apiPost/apiPut/apiDelete/logout come from api.js.
  */
 
 let ws = null;
@@ -11,9 +12,15 @@ let users = [];
 let onlineSet = new Set();
 let avatarVersions = {};   // { "userId": versionToken } for users who have a photo
 let replyingTo = null;     // { id, sender_username, content }
-let pendingAvatar = null;  // new photo chosen in the profile dialog, not saved yet
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 8;
+
+// Profile dialog state
+let profileUserId = null;      // whose profile is open
+let profileBio = '';           // saved bio of that profile
+let bioLoaded = false;         // true once the bio has been fetched
+let pendingAvatar = null;      // new photo chosen, not saved yet
+let removeAvatarFlag = false;  // "Remove photo" clicked, not saved yet
 
 const AVATAR_COLORS = [
     ['#3b82f6', '#8b5cf6'], ['#06b6d4', '#3b82f6'], ['#ec4899', '#f97316'],
@@ -23,12 +30,21 @@ const AVATAR_COLORS = [
 
 // ---------- Small helpers ----------
 
-function avatarGradient(name) {
+function avatarColors(name) {
     let h = 0;
     const s = String(name || '');
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    const c = AVATAR_COLORS[h % AVATAR_COLORS.length];
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+function avatarGradient(name) {
+    const c = avatarColors(name);
     return `linear-gradient(135deg, ${c[0]}, ${c[1]})`;
+}
+
+function coverGradient(name) {
+    const c = avatarColors(name);
+    return `linear-gradient(120deg, ${c[0]} 0%, ${c[1]} 100%)`;
 }
 
 // Server timestamps are UTC; treat them as UTC even when the "Z" is missing
@@ -84,6 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(loadUsers, 10000);
 
     setupMessageInteractions();
+
+    // Escape closes the profile dialog
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('profile-modal').classList.contains('open')) {
+            closeProfile();
+        }
+    });
 });
 
 // ---------- WebSocket ----------
@@ -241,6 +264,15 @@ function updateUserStatus(userId, isOnline) {
             headerStatus.className = `user-status ${isOnline ? 'online' : ''}`;
         }
     }
+
+    // Keep an open profile card's status pill in sync
+    if (profileUserId === userId && document.getElementById('profile-modal').classList.contains('open')) {
+        const pill = document.querySelector('#profile-sub .status-pill');
+        if (pill) {
+            pill.classList.toggle('online', isOnline);
+            pill.lastChild.textContent = isOnline ? 'Online' : 'Offline';
+        }
+    }
 }
 
 function renderMyAvatar() {
@@ -262,12 +294,16 @@ async function selectUser(user) {
 
     const online = onlineSet.has(user.id);
     document.getElementById('chat-header').innerHTML = `
-        <div class="header-avatar" style="background:${avatarGradient(user.username)}">
-            ${avatarHtml(user.id, user.username)}
-        </div>
-        <div class="chat-header-info">
-            <h3>${escapeHtml(user.username)}</h3>
-            <span id="header-status" class="user-status ${online ? 'online' : ''}">${online ? 'Online' : 'Offline'}</span>
+        <div class="header-profile" role="button" tabindex="0" title="View profile"
+             onclick="showProfile(${user.id})"
+             onkeydown="if (event.key === 'Enter') showProfile(${user.id})">
+            <div class="header-avatar" style="background:${avatarGradient(user.username)}">
+                ${avatarHtml(user.id, user.username)}
+            </div>
+            <div class="chat-header-info">
+                <h3>${escapeHtml(user.username)}</h3>
+                <span id="header-status" class="user-status ${online ? 'online' : ''}">${online ? 'Online' : 'Offline'}</span>
+            </div>
         </div>
     `;
 
@@ -466,29 +502,130 @@ function showTypingIndicator(username) {
     }, 3000);
 }
 
-// ---------- Profile photo ----------
+// ---------- Profile card (yours and other people's) ----------
 
+// Opens your own profile for editing
 function openProfile() {
+    showProfile(currentUser.id);
+}
+
+async function showProfile(userId) {
+    userId = Number(userId);
+    const isSelf = userId === currentUser.id;
+    const user = isSelf ? currentUser : users.find(u => u.id === userId);
+    if (!user) return;
+
+    profileUserId = user.id;
     pendingAvatar = null;
-    document.getElementById('profile-name').textContent = currentUser.username;
+    removeAvatarFlag = false;
+    profileBio = '';
+    bioLoaded = false;
+
+    const card = document.getElementById('profile-card');
+    card.classList.toggle('is-self', isSelf);
+    card.classList.toggle('is-other', !isSelf);
+
+    document.getElementById('profile-cover').style.background = coverGradient(user.username);
+    document.getElementById('profile-name').textContent = user.username;
     renderProfilePreview();
+    renderProfileSub(user.id, null);
+
+    const bioInput = document.getElementById('bio-input');
+    bioInput.value = '';
+    bioInput.disabled = true;
+    updateBioCount();
+    setBioView(null, true);
+
     document.getElementById('profile-modal').classList.add('open');
+
+    const data = await apiGet(isSelf ? '/api/profile/me' : `/api/profile/${user.id}`);
+
+    // The dialog may have been closed or switched to someone else while loading
+    const stillOpen = document.getElementById('profile-modal').classList.contains('open');
+    if (!stillOpen || profileUserId !== user.id) return;
+
+    if (!data) {
+        showNotification('Could not load the profile');
+        setBioView(null);
+        return;
+    }
+
+    profileBio = data.bio || '';
+    bioLoaded = true;
+    bioInput.value = profileBio;
+    bioInput.disabled = false;
+    updateBioCount();
+    setBioView(profileBio);
+    renderProfileSub(user.id, data.created_at);
 }
 
 function closeProfile() {
     document.getElementById('profile-modal').classList.remove('open');
     document.getElementById('photo-input').value = '';
     pendingAvatar = null;
+    removeAvatarFlag = false;
+    profileUserId = null;
+}
+
+function setBioView(text, loading) {
+    const el = document.getElementById('bio-text');
+    if (loading) {
+        el.textContent = 'Loading...';
+        el.classList.add('empty');
+    } else if (text) {
+        el.textContent = text;
+        el.classList.remove('empty');
+    } else {
+        el.textContent = 'No bio yet.';
+        el.classList.add('empty');
+    }
+}
+
+function updateBioCount() {
+    const input = document.getElementById('bio-input');
+    const counter = document.getElementById('bio-count');
+    const length = input.value.length;
+    counter.textContent = length;
+    counter.parentElement.classList.toggle('near', length >= 180);
+}
+
+function renderProfileSub(userId, createdAt) {
+    const sub = document.getElementById('profile-sub');
+    let html = '';
+
+    if (userId !== currentUser.id) {
+        const online = onlineSet.has(userId);
+        html += `<span class="status-pill ${online ? 'online' : ''}"><i></i>${online ? 'Online' : 'Offline'}</span>`;
+    }
+    if (createdAt) {
+        const joined = parseTime(createdAt).toLocaleDateString([], { month: 'long', year: 'numeric' });
+        html += `<span class="member-since">Member since ${escapeHtml(joined)}</span>`;
+    }
+    sub.innerHTML = html;
 }
 
 function renderProfilePreview() {
-    const preview = document.getElementById('profile-preview');
-    preview.style.background = avatarGradient(currentUser.username);
+    const isSelf = profileUserId === currentUser.id;
+    const user = isSelf ? currentUser : users.find(u => u.id === profileUserId);
+    if (!user) return;
 
-    if (pendingAvatar) {
-        preview.innerHTML = `<img src="${pendingAvatar}" alt="">`;
+    const preview = document.getElementById('profile-preview');
+    preview.style.background = avatarGradient(user.username);
+
+    const initial = escapeHtml((user.username || '?').charAt(0).toUpperCase());
+    if (isSelf && removeAvatarFlag) {
+        preview.innerHTML = `<span class="avatar-initial">${initial}</span>`;
+    } else if (isSelf && pendingAvatar) {
+        preview.innerHTML = `<span class="avatar-initial">${initial}</span><img src="${pendingAvatar}" alt="">`;
     } else {
-        preview.innerHTML = avatarHtml(currentUser.id, currentUser.username);
+        preview.innerHTML = avatarHtml(user.id, user.username);
+    }
+
+    // "Remove photo" only makes sense when there is a photo to remove
+    const removeBtn = document.getElementById('remove-photo-btn');
+    if (removeBtn) {
+        const hasPhoto = !removeAvatarFlag && (pendingAvatar || avatarVersions[String(currentUser.id)]);
+        removeBtn.style.display = hasPhoto ? '' : 'none';
     }
 }
 
@@ -536,6 +673,7 @@ async function handlePhotoSelected(event) {
 
     try {
         pendingAvatar = await resizeImage(file);
+        removeAvatarFlag = false;
         renderProfilePreview();
     } catch (err) {
         console.error(err);
@@ -543,42 +681,60 @@ async function handlePhotoSelected(event) {
     }
 }
 
-async function saveProfilePhoto() {
-    if (!pendingAvatar) {
-        closeProfile();
-        return;
-    }
+// Staged: nothing is saved until "Save changes"
+function removeProfilePhoto() {
+    pendingAvatar = null;
+    removeAvatarFlag = true;
+    document.getElementById('photo-input').value = '';
+    renderProfilePreview();
+}
 
-    const btn = document.getElementById('save-photo-btn');
+async function saveProfile() {
+    const btn = document.getElementById('save-profile-btn');
     btn.disabled = true;
     btn.textContent = 'Saving...';
 
-    const res = await apiPost('/api/profile/avatar', { image: pendingAvatar });
+    let ok = true;
+    const myId = String(currentUser.id);
+
+    try {
+        // 1. Photo
+        if (removeAvatarFlag) {
+            const res = await apiDelete('/api/profile/avatar');
+            if (res) delete avatarVersions[myId]; else ok = false;
+        } else if (pendingAvatar) {
+            const res = await apiPost('/api/profile/avatar', { image: pendingAvatar });
+            if (res && res.ok) avatarVersions[myId] = Date.now(); else ok = false;
+        }
+
+        // 2. Bio (only if it was loaded and has changed)
+        const bio = document.getElementById('bio-input').value.trim();
+        if (ok && bioLoaded && bio !== profileBio) {
+            const res = await apiPut('/api/profile/me', { bio: bio });
+            if (res && res.ok) profileBio = res.bio; else ok = false;
+        }
+    } catch (err) {
+        console.error('Save profile failed:', err);
+        ok = false;
+    }
 
     btn.disabled = false;
-    btn.textContent = 'Save';
+    btn.textContent = 'Save changes';
 
-    if (res && res.ok) {
-        avatarVersions[String(currentUser.id)] = Date.now();
+    if (ok) {
         renderMyAvatar();
         closeProfile();
-        showNotification('Profile photo updated');
+        showNotification('Profile updated');
     } else {
-        showNotification('Could not save the photo. Try a smaller image.');
+        showNotification('Could not save your changes. Please try again.');
     }
 }
 
-async function removeProfilePhoto() {
-    const res = await apiDelete('/api/profile/avatar');
-    if (res) {
-        delete avatarVersions[String(currentUser.id)];
-        pendingAvatar = null;
-        renderMyAvatar();
-        renderProfilePreview();
-        showNotification('Profile photo removed');
-    } else {
-        showNotification('Could not remove the photo');
-    }
+// "Send message" button on someone else's profile
+function messageFromProfile() {
+    const user = users.find(u => u.id === profileUserId);
+    closeProfile();
+    if (user) selectUser(user);
 }
 
 // ---------- Misc ----------

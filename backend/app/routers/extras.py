@@ -1,5 +1,5 @@
 """
-Profile photos and chat history with reply support.
+Profile photos, bios and chat history with reply support.
 """
 import base64
 import re
@@ -15,11 +15,17 @@ from app import auth, models
 router = APIRouter(prefix="/api", tags=["Profile and chat extras"])
 
 MAX_AVATAR_CHARS = 200_000  # roughly 150 KB of image data
+MAX_BIO_CHARS = 200
 DATA_URL_RE = re.compile(r"^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$")
+CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 
 class AvatarUpload(BaseModel):
     image: str
+
+
+class BioUpdate(BaseModel):
+    bio: str = ""
 
 
 def serialize_message(m, db: Session) -> dict:
@@ -44,6 +50,16 @@ def serialize_message(m, db: Session) -> dict:
         "read_status": m.read_status,
         "reply_to_id": m.reply_to_id,
         "reply_to": reply,
+    }
+
+
+def profile_dict(user) -> dict:
+    """Public profile data. Never includes the email address."""
+    return {
+        "id": user.id,
+        "username": user.username,
+        "bio": user.bio or "",
+        "created_at": (user.created_at.isoformat() + "Z") if user.created_at else None,
     }
 
 
@@ -114,6 +130,55 @@ def get_avatar(user_id: int, db: Session = Depends(get_db)):
         media_type=f"image/{match.group(1)}",
         headers={"Cache-Control": "public, max-age=300"},
     )
+
+
+# ---------- Bio / profile ----------
+# Keep /profile/me BEFORE /profile/{user_id}, or "me" would be read as a user id.
+
+@router.get("/profile/me")
+def get_my_profile(
+    db: Session = Depends(get_db),
+    current_user=Depends(auth.get_current_user),
+):
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    return profile_dict(user)
+
+
+@router.put("/profile/me")
+def update_my_profile(
+    payload: BioUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(auth.get_current_user),
+):
+    bio = CONTROL_CHARS_RE.sub("", (payload.bio or "").replace("\r\n", "\n")).strip()
+    bio = re.sub(r"\n{3,}", "\n\n", bio)  # at most one blank line in a row
+
+    if len(bio) > MAX_BIO_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Bio must be {MAX_BIO_CHARS} characters or fewer",
+        )
+
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    user.bio = bio or None
+    db.commit()
+    return {"ok": True, "bio": bio}
+
+
+@router.get("/profile/{user_id}")
+def get_profile(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(auth.get_current_user),
+):
+    user = (
+        db.query(models.User)
+        .filter(models.User.id == user_id, models.User.is_active.is_(True))
+        .first()
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return profile_dict(user)
 
 
 # ---------- Chat history (includes reply info) ----------

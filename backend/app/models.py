@@ -15,9 +15,9 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)  # For banning users
     created_at = Column(DateTime, default=datetime.utcnow)
-    # Profile photo stored as a small data URL. "deferred" means it is only
-    # loaded when asked for, so listing users stays fast.
-    avatar = deferred(Column(Text, nullable=True))
+    # "deferred" columns are only loaded when asked for, so listing users stays fast.
+    avatar = deferred(Column(Text, nullable=True))        # profile photo as a small data URL
+    bio = deferred(Column(String(300), nullable=True))    # short "about me" text
 
     # Relationships
     sent_messages = relationship("Message", foreign_keys="Message.sender_id", back_populates="sender")
