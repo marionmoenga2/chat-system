@@ -3,45 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat - Messages</title>
-    <link rel="stylesheet" href="css/styles.css?v=3">
+    <title>ChatWave - Messages</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%233b82f6'/><text x='50' y='68' font-size='54' text-anchor='middle'>⚡</text></svg>">
+    <link rel="stylesheet" href="css/styles.css?v=6">
 
-    <!-- Mobile layout (placed after styles.css so it overrides the old mobile rules) -->
     <style>
-        /* The mobile bar is hidden on desktop */
+        /* Loaded after styles.css, so these rules override the old chat styles */
+        :root {
+            --cw-blue: #3b82f6;
+            --cw-violet: #8b5cf6;
+            --cw-cyan: #06b6d4;
+            --cw-grad: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --cw-ink: #0f172a;
+            --cw-muted: #64748b;
+            --cw-line: #e8edf5;
+        }
+
+        body { background: #eef2f9; }
+
+        .chat-app {
+            background: #ffffff;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ================= SIDEBAR ================= */
+        .sidebar {
+            width: 340px;
+            background: #ffffff;
+            border-right: 1px solid var(--cw-line);
+        }
+
+        .sidebar-header {
+            padding: 1.25rem 1.25rem 1rem;
+            border-bottom: none;
+            background: var(--cw-grad);
+            color: #fff;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-logo svg { width: 22px; height: 22px; }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #fff;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.16);
+            border-radius: 14px;
+            padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-info #current-user {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-info .btn-small {
+            background: rgba(255, 255, 255, 0.95);
+            color: #4f46e5;
+            border-radius: 10px;
+            padding: 0.4rem 0.85rem;
+            font-weight: 700;
+            transition: transform 0.15s, background-color 0.2s;
+        }
+
+        .user-info .btn-small:hover { background: #fff; transform: translateY(-1px); }
+
+        /* Search */
+        .search-box {
+            padding: 0.9rem 1rem;
+            border-bottom: none;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.7rem 1rem 0.7rem 2.6rem;
+            border: 2px solid transparent;
+            border-radius: 14px;
+            background: #f1f5f9 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E") no-repeat 0.85rem center / 18px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            background-color: #fff;
+            border-color: var(--cw-blue);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
+        }
+
+        /* Users list */
+        .users-list { padding: 0.25rem 0.6rem 0.75rem; }
+
+        .user-item {
+            position: relative;
+            padding: 0.7rem 0.8rem;
+            margin-bottom: 0.2rem;
+            border-radius: 16px;
+            transition: background-color 0.2s, transform 0.15s;
+        }
+
+        .user-item:hover { background: #f5f7fc; }
+        .user-item:active { transform: scale(0.99); }
+
+        .user-item.active {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.12), rgba(139, 92, 246, 0.08));
+        }
+
+        .user-item.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 20%;
+            bottom: 20%;
+            width: 4px;
+            border-radius: 4px;
+            background: var(--cw-grad);
+        }
+
+        .user-avatar {
+            position: relative;
+            width: 46px;
+            height: 46px;
+            margin-right: 0.85rem;
+            border-radius: 50%;
+            background: var(--cw-grad);
+            font-size: 1.1rem;
+            font-weight: 700;
+            box-shadow: 0 6px 14px -6px rgba(79, 70, 229, 0.55);
+            overflow: visible;
+        }
+
+        /* Online dot on the avatar (needs :has, supported by modern browsers) */
+        .user-item:has(.user-status.online) .user-avatar::after {
+            content: "";
+            position: absolute;
+            right: -1px;
+            bottom: -1px;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #22c55e;
+            border: 2.5px solid #fff;
+        }
+
+        .user-name {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--cw-ink);
+            margin-bottom: 0.1rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-status { font-size: 0.78rem; color: var(--cw-muted); }
+        .user-status.online { color: #16a34a; font-weight: 600; }
+
+        /* ================= CHAT AREA ================= */
+        .chat-main {
+            min-width: 0;
+            background-color: #f6f8fd;
+            background-image:
+                radial-gradient(circle at 20% 15%, rgba(59, 130, 246, 0.07) 0, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.07) 0, transparent 40%);
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.85rem 1.4rem;
+            background: #ffffff;
+            border-bottom: 1px solid var(--cw-line);
+            box-shadow: 0 4px 14px -10px rgba(15, 23, 42, 0.25);
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--cw-ink);
+        }
+
+        .chat-header-info { display: flex; flex-direction: column; min-width: 0; }
+        .chat-header .user-status { font-size: 0.78rem; }
+
+        .header-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            flex-shrink: 0;
+            background: var(--cw-grad);
+        }
+
+        /* the old back arrow is replaced by the mobile bar below */
+        .chat-header .back-btn { display: none !important; }
+
+        /* Messages */
+        .messages-container {
+            padding: 1.25rem 1.5rem;
+            gap: 0.45rem;
+            scroll-behavior: smooth;
+        }
+
+        .messages-container::-webkit-scrollbar,
+        .users-list::-webkit-scrollbar { width: 8px; }
+        .messages-container::-webkit-scrollbar-thumb,
+        .users-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+
+        .empty-state {
+            margin: auto;
+            padding: 2rem 1rem;
+            text-align: center;
+            color: var(--cw-muted);
+            font-size: 0.95rem;
+        }
+
+        .empty-state .empty-icon {
+            width: 76px;
+            height: 76px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            background: var(--cw-grad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 14px 28px -10px rgba(99, 102, 241, 0.6);
+        }
+
+        .empty-state .empty-icon svg { width: 36px; height: 36px; }
+
+        .message {
+            max-width: 68%;
+            padding: 0.6rem 0.95rem 0.45rem;
+            border-radius: 20px;
+            font-size: 0.97rem;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+            animation: pop 0.22s ease;
+        }
+
+        @keyframes pop {
+            from { opacity: 0; transform: translateY(8px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .message.sent {
+            background: var(--cw-grad);
+            color: #fff;
+            border-bottom-right-radius: 6px;
+            box-shadow: 0 8px 18px -10px rgba(79, 70, 229, 0.7);
+        }
+
+        .message.received {
+            background: #ffffff;
+            color: var(--cw-ink);
+            border: 1px solid var(--cw-line);
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 4px 12px -10px rgba(15, 23, 42, 0.35);
+        }
+
+        /* the sender name is redundant in a one-to-one chat */
+        .message-sender { display: none; }
+
+        .message-time {
+            margin-top: 0.15rem;
+            font-size: 0.68rem;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+        /* Input bar */
+        .message-input-area {
+            padding: 0.8rem 1.25rem 1rem;
+            background: #ffffff;
+            border-top: 1px solid var(--cw-line);
+        }
+
+        .typing-indicator {
+            min-height: 1.2rem;
+            margin-bottom: 0.35rem;
+            padding-left: 0.5rem;
+            font-size: 0.82rem;
+            font-style: italic;
+            color: var(--cw-blue);
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.3rem 0.3rem 0.3rem 1.1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 999px;
+            background: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+        }
+
+        .input-wrapper:focus-within {
+            background: #fff;
+            border-color: var(--cw-blue);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            min-width: 0;
+            padding: 0.55rem 0;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+        }
+
+        .input-wrapper input:focus { outline: none; border: none; }
+
+        .btn-send {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border-radius: 50%;
+            background: var(--cw-grad);
+            color: #fff;
+            box-shadow: 0 8px 16px -8px rgba(79, 70, 229, 0.8);
+            transition: transform 0.15s, filter 0.2s;
+        }
+
+        .btn-send:hover { filter: brightness(1.08); transform: scale(1.06); }
+        .btn-send:active { transform: scale(0.96); }
+        .btn-send svg { width: 20px; height: 20px; margin-left: 2px; }
+
+        /* Notification toast */
+        .notification {
+            border-radius: 14px;
+            background: var(--cw-ink);
+            box-shadow: 0 16px 32px -12px rgba(15, 23, 42, 0.5);
+            font-weight: 600;
+        }
+
+        /* ================= MOBILE ================= */
         .mobile-bar {
             display: none;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            background-color: var(--primary-color);
-            color: white;
+            padding: 0.7rem 1rem;
+            background: var(--cw-grad);
+            color: #fff;
             flex-shrink: 0;
         }
 
         .mobile-bar button {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+            background: rgba(255, 255, 255, 0.22);
+            color: #fff;
             border: none;
-            border-radius: 8px;
-            padding: 0.5rem 0.9rem;
-            font-size: 0.95rem;
-            font-weight: 600;
+            border-radius: 10px;
+            padding: 0.45rem 0.85rem;
+            font-size: 0.92rem;
+            font-weight: 700;
             cursor: pointer;
         }
 
         .mobile-bar .mobile-title {
-            font-weight: 600;
+            font-weight: 700;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         @media (max-width: 768px) {
-            body {
-                height: 100vh;
-                height: 100dvh;
-            }
+            body { height: 100vh; height: 100dvh; }
 
             .chat-app {
                 height: 100vh;
@@ -50,7 +414,6 @@
                 position: relative;
             }
 
-            /* User list: visible and full screen by default */
             .sidebar {
                 position: static !important;
                 transform: none !important;
@@ -61,17 +424,6 @@
                 border-right: none;
             }
 
-            .sidebar-header {
-                padding: 1rem;
-            }
-
-            .user-item {
-                padding: 1rem;
-                border-bottom: 1px solid var(--border-color);
-                border-radius: 0;
-            }
-
-            /* Conversation: hidden until a user is selected */
             .chat-main {
                 display: none;
                 width: 100%;
@@ -79,55 +431,42 @@
                 min-height: 0;
             }
 
-            .chat-app.chat-open .sidebar {
-                display: none;
-            }
+            .chat-app.chat-open .sidebar { display: none; }
+            .chat-app.chat-open .chat-main { display: flex; flex-direction: column; }
 
-            .chat-app.chat-open .chat-main {
-                display: flex;
-                flex-direction: column;
-            }
+            .mobile-bar { display: flex; }
 
-            .mobile-bar {
-                display: flex;
-            }
-
-            .messages-container {
-                flex: 1;
-                min-height: 0;
-                overflow-y: auto;
-                padding: 1rem;
-            }
-
-            .message {
-                max-width: 85%;
-            }
-
-            .message-input-area {
-                padding: 0.75rem 1rem;
-                flex-shrink: 0;
-            }
+            .messages-container { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem; }
+            .message { max-width: 82%; }
+            .message-input-area { padding: 0.65rem 0.85rem 0.85rem; flex-shrink: 0; }
 
             /* 16px stops iOS from zooming in when an input is tapped */
             .search-box input,
-            .input-wrapper input {
-                font-size: 16px;
-            }
+            .input-wrapper input { font-size: 16px; }
 
-            .notification {
-                left: 10px;
-                right: 10px;
-                top: 10px;
-            }
+            .notification { left: 10px; right: 10px; top: 10px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .message { animation: none; }
         }
     </style>
 </head>
 <body>
     <div class="chat-app" id="chat-app">
+
         <!-- Sidebar: list of users -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>Chat System</h2>
+                <div class="brand-row">
+                    <div class="brand-logo" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 8h28a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H22l-8 7v-7h-4a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z" fill="#ffffff"/>
+                            <path d="M26 14l-8 10h6l-2 8 9-11h-6z" fill="#6366f1"/>
+                        </svg>
+                    </div>
+                    <h2>ChatWave</h2>
+                </div>
                 <div class="user-info">
                     <span id="current-user">Loading...</span>
                     <button onclick="logout()" class="btn btn-small">Logout</button>
@@ -135,7 +474,7 @@
             </div>
 
             <div class="search-box">
-                <input type="text" id="user-search" placeholder="Search users..."
+                <input type="text" id="user-search" placeholder="Search people..."
                        oninput="filterUsers()" onfocus="loadUsers()">
             </div>
 
@@ -157,7 +496,16 @@
             </div>
 
             <div class="messages-container" id="messages-container">
-                <div class="empty-state">Select a user from the sidebar to view messages</div>
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 8h28a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H22l-8 7v-7h-4a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z" fill="#ffffff"/>
+                            <path d="M26 14l-8 10h6l-2 8 9-11h-6z" fill="#6366f1"/>
+                        </svg>
+                    </div>
+                    <strong>Your conversations live here</strong><br>
+                    Pick someone from the list to start chatting
+                </div>
             </div>
 
             <div class="message-input-area" id="message-input-area" style="display: none;">
@@ -167,10 +515,16 @@
                         type="text"
                         id="message-input"
                         placeholder="Type a message..."
+                        autocomplete="off"
                         onkeypress="handleKeyPress(event)"
                         oninput="handleTyping()"
                     >
-                    <button onclick="sendMessage()" class="btn btn-send">Send</button>
+                    <button onclick="sendMessage()" class="btn btn-send" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </main>
@@ -184,19 +538,68 @@
     <script src="js/api.js"></script>
     <script src="js/chat.js"></script>
 
-    <!-- Mobile navigation: switches between the user list and the conversation -->
+    <!-- Navigation and visual touches (no changes to chat.js needed) -->
     <script>
+        var AVATAR_COLORS = [
+            ['#3b82f6', '#8b5cf6'], ['#06b6d4', '#3b82f6'], ['#ec4899', '#f97316'],
+            ['#10b981', '#06b6d4'], ['#f59e0b', '#ef4444'], ['#8b5cf6', '#ec4899'],
+            ['#14b8a6', '#84cc16'], ['#6366f1', '#06b6d4']
+        ];
+
+        function avatarGradient(name) {
+            var h = 0;
+            for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+            var c = AVATAR_COLORS[h % AVATAR_COLORS.length];
+            return 'linear-gradient(135deg, ' + c[0] + ', ' + c[1] + ')';
+        }
+
+        // Give every avatar in the sidebar its own color
+        function colorAvatars() {
+            document.querySelectorAll('#users-list .user-item').forEach(function (item) {
+                var nameEl = item.querySelector('.user-name');
+                var av = item.querySelector('.user-avatar');
+                if (nameEl && av) av.style.background = avatarGradient(nameEl.textContent);
+            });
+        }
+
+        new MutationObserver(colorAvatars)
+            .observe(document.getElementById('users-list'), { childList: true });
+
+        // Show the selected user's avatar and group name + status in the chat header
+        function decorateHeader(user) {
+            var header = document.getElementById('chat-header');
+            if (!header || header.querySelector('.header-avatar')) return;
+
+            var h3 = header.querySelector('h3');
+            var status = header.querySelector('#header-status');
+            if (h3 && status && !header.querySelector('.chat-header-info')) {
+                var info = document.createElement('div');
+                info.className = 'chat-header-info';
+                header.insertBefore(info, h3);
+                info.appendChild(h3);
+                info.appendChild(status);
+            }
+
+            var av = document.createElement('div');
+            av.className = 'header-avatar';
+            av.textContent = user.username.charAt(0).toUpperCase();
+            av.style.background = avatarGradient(user.username);
+            header.insertBefore(av, header.firstChild);
+        }
+
         function showSidebar() {
             document.getElementById('chat-app').classList.remove('chat-open');
         }
 
         // Wrap selectUser so choosing a user opens the conversation on mobile
         (function () {
-            const originalSelectUser = window.selectUser;
-            window.selectUser = async function (user) {
+            var originalSelectUser = window.selectUser;
+            window.selectUser = function (user) {
                 document.getElementById('chat-app').classList.add('chat-open');
                 document.getElementById('mobile-chat-title').textContent = user.username;
-                return originalSelectUser(user);
+                var result = originalSelectUser(user);
+                decorateHeader(user);
+                return result;
             };
         })();
     </script>
