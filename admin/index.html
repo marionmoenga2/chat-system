@@ -325,7 +325,8 @@
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                     </svg>
                     <input type="text" id="admin-username" placeholder="Admin username"
-                           autocomplete="username" autocapitalize="none" required>
+                           autocomplete="username" autocapitalize="none" autocorrect="off"
+                           spellcheck="false" required>
                 </div>
 
                 <div class="field has-toggle">
@@ -369,9 +370,9 @@
     <script src="js/config.js"></script>
 
     <script>
-        const form = document.getElementById('adminLoginForm');
-        const btn = document.getElementById('loginBtn');
-        const msg = document.getElementById('message');
+        var form = document.getElementById('adminLoginForm');
+        var btn = document.getElementById('loginBtn');
+        var msg = document.getElementById('message');
 
         function setMessage(text, type) {
             msg.textContent = text || '';
@@ -387,10 +388,23 @@
             return fallback;
         }
 
+        // Saved under both sets of keys so the dashboard finds the session
+        function saveSession(token, user) {
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('admin_token', token);
+            localStorage.setItem('admin_user', JSON.stringify(user));
+        }
+
+        function clearSession() {
+            ['token', 'user', 'admin_token', 'admin_user'].forEach(function (k) {
+                localStorage.removeItem(k);
+            });
+        }
+
         // Visit index.html?logout=1 to clear a stale session
         if (new URLSearchParams(window.location.search).get('logout') === '1') {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            clearSession();
         }
 
         // Already signed in as an admin? Go straight to the dashboard
@@ -456,8 +470,7 @@
                     return;
                 }
 
-                localStorage.setItem('token', data.access_token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                saveSession(data.access_token, data.user);
                 setMessage('Welcome back! Redirecting...', 'info');
                 window.location.href = 'dashboard.html';
             } catch (err) {
