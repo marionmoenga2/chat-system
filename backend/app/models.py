@@ -1,7 +1,7 @@
 """
 SQLAlchemy ORM Models defining the database schema.
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, deferred
 from datetime import datetime
 from app.database import Base
@@ -44,3 +44,34 @@ class ChatRoom(Base):
     name = Column(String(100), nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ---------- Group chats ----------
+
+class Group(Base):
+    __tablename__ = "chat_groups"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(60), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class GroupMember(Base):
+    __tablename__ = "group_members"
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_member"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(Integer, ForeignKey("chat_groups.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    is_admin = Column(Boolean, default=False)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+
+class GroupMessage(Base):
+    __tablename__ = "group_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(Integer, ForeignKey("chat_groups.id"), nullable=False, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    reply_to_id = Column(Integer, ForeignKey("group_messages.id"), nullable=True)
+
+    sender = relationship("User", foreign_keys=[sender_id])
