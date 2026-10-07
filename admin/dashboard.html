@@ -1,95 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="css/admin.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --ink: #14213d; --ink-hover: #22345c; --canvas: #eff2f7; --surface: #fff;
+    --line: #dde3ec; --text: #1b2438; --muted: #64708a;
+    --primary: #0e7490; --primary-soft: #e0f2f7;
+    --good: #15803d; --good-soft: #dcfce7; --bad: #b91c1c; --bad-soft: #fee2e2;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--canvas); color: var(--text); font-size: 15px; line-height: 1.5; display: flex; min-height: 100vh; }
+.hidden { display: none !important; }
+
+/* Sidebar */
+.sidebar { width: 232px; background: var(--ink); color: #fff; padding: 24px 16px; display: flex;
+    flex-direction: column; position: sticky; top: 0; height: 100vh; flex-shrink: 0; }
+.brand { font-weight: 600; font-size: 1.15rem; padding: 0 10px 22px; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 16px; }
+.brand small { display: block; font-weight: 400; font-size: .8rem; color: #9fb0d0; }
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav-link { background: none; border: 0; color: #c5d0e6; font: inherit; text-align: left; padding: 10px 12px;
+    border-radius: 8px; cursor: pointer; border-left: 3px solid transparent; }
+.nav-link:hover { background: var(--ink-hover); color: #fff; }
+.nav-link.active { background: var(--ink-hover); color: #fff; border-left-color: #38bdf8; font-weight: 500; }
+.sidebar .logout { margin-top: auto; }
+
+/* Main */
+main { flex: 1; min-width: 0; padding: 32px 36px; max-width: 1200px; }
+h2 { margin: 0 0 4px; font-size: 1.5rem; font-weight: 600; }
+.subtitle { margin: 0 0 24px; color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+
+/* Overview: one panel, four figures */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); }
+.stat { padding: 24px 26px; border-right: 1px solid var(--line); }
+.stat:last-child { border-right: 0; }
+.stat-label { color: var(--muted); font-size: .85rem; display: flex; align-items: center; gap: 8px; }
+.stat-value { font-size: 2.6rem; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--primary); }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.5); } 70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 500; font-size: .82rem; color: var(--muted); background: #f7f9fc;
+    padding: 12px 16px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: #f7fafc; }
+td:nth-child(4) { word-break: break-word; }
+#messages-table td:nth-child(4) { min-width: 240px; word-break: break-word; }
+
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 500; }
+.badge-active { background: var(--good-soft); color: var(--good); }
+.badge-banned { background: var(--bad-soft); color: var(--bad); }
+.actions { white-space: nowrap; }
+.btn { font: inherit; font-size: .84rem; padding: 5px 12px; border-radius: 7px; cursor: pointer; border: 1px solid transparent; background: #fff; }
+.btn-danger { color: var(--bad); border-color: #f1b8b8; }
+.btn-danger:hover { background: var(--bad-soft); }
+.btn-success { color: var(--good); border-color: #a6dbb8; }
+.btn-success:hover { background: var(--good-soft); }
+.btn-primary { background: var(--primary); color: #fff; padding: 8px 18px; }
+.btn-primary:hover { background: #0b6279; }
+
+/* Filters */
+.filters { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; border-bottom: 1px solid var(--line); }
+.filters input { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; min-width: 0; }
+#msg-search { flex: 1 1 220px; }
+#msg-user-id { width: 130px; }
+
+:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+@media (max-width: 800px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center;
+        flex-wrap: wrap; padding: 12px 16px; gap: 8px; }
+    .brand { border: 0; padding: 0; margin: 0; flex: 1 1 100%; }
+    .nav { flex-direction: row; flex: 1; }
+    .nav-link { border-left: 0; border-bottom: 3px solid transparent; border-radius: 8px 8px 0 0; }
+    .nav-link.active { border-bottom-color: #38bdf8; }
+    .sidebar .logout { margin-top: 0; }
+    main { padding: 20px 14px; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:nth-child(2) { border-right: 0; }
+    .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+}
+</style>
 </head>
 <body>
-    <div class="admin-layout">
-        <!-- Sidebar -->
-        <aside class="admin-sidebar">
-            <h2>Admin Panel</h2>
-            <nav>
-                <a href="#" class="nav-link active" onclick="showSection('dashboard')">Dashboard</a>
-                <a href="#" class="nav-link" onclick="showSection('users')">Users</a>
-                <a href="#" class="nav-link" onclick="showSection('messages')">Messages</a>
-            </nav>
-            <button onclick="logout()" class="btn btn-logout">Logout</button>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="admin-main">
-            <!-- Dashboard Stats -->
-            <section id="dashboard-section" class="section">
-                <h1>Dashboard</h1>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Total Users</h3>
-                        <p id="stat-users">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Messages</h3>
-                        <p id="stat-messages">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Active Users</h3>
-                        <p id="stat-active">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Online Now</h3>
-                        <p id="stat-online">0</p>
-                    </div>
-                </div>
-            </section>
+<aside class="sidebar">
+    <div class="brand">Chat System<small>Admin panel</small></div>
+    <nav class="nav">
+        <button type="button" class="nav-link active" onclick="showSection('dashboard')">Overview</button>
+        <button type="button" class="nav-link" onclick="showSection('users')">Users</button>
+        <button type="button" class="nav-link" onclick="showSection('messages')">Messages</button>
+    </nav>
+    <button type="button" class="nav-link logout" onclick="logout()">Log out</button>
+</aside>
 
-            <!-- Users Management -->
-            <section id="users-section" class="section hidden">
-                <h1>User Management</h1>
-                <div class="table-container">
-                    <table id="users-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Username</th>
-                                <th>Email</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </section>
+<main>
+    <section id="dashboard-section" class="section">
+        <h2>Overview</h2>
+        <p class="subtitle">How your chat system is doing right now.</p>
+        <div class="panel stats">
+            <div class="stat"><div class="stat-label">Total users</div><div class="stat-value" id="stat-users">–</div></div>
+            <div class="stat"><div class="stat-label">Active accounts</div><div class="stat-value" id="stat-active">–</div></div>
+            <div class="stat"><div class="stat-label">Messages sent</div><div class="stat-value" id="stat-messages">–</div></div>
+            <div class="stat"><div class="stat-label"><span class="live-dot"></span>Online now</div><div class="stat-value" id="stat-online">–</div></div>
+        </div>
+    </section>
 
-            <!-- Messages -->
-            <section id="messages-section" class="section hidden">
-                <h1>Message History</h1>
-                <div class="filters">
-                    <input type="text" id="msg-search" placeholder="Search messages...">
-                    <input type="number" id="msg-user-id" placeholder="User ID">
-                    <button onclick="loadMessages()" class="btn btn-primary">Search</button>
-                </div>
-                <div class="table-container">
-                    <table id="messages-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>From</th>
-                                <th>To</th>
-                                <th>Content</th>
-                                <th>Time</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </div>
+    <section id="users-section" class="section hidden">
+        <h2>Users</h2>
+        <p class="subtitle">Ban, unban or delete accounts.</p>
+        <div class="panel table-wrap">
+            <table id="users-table">
+                <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
 
-    <script src="js/admin.js"></script>
+    <section id="messages-section" class="section hidden">
+        <h2>Messages</h2>
+        <p class="subtitle">Search private messages by text or by user ID.</p>
+        <div class="panel">
+            <div class="filters">
+                <input type="text" id="msg-search" placeholder="Search message text" onkeydown="if (event.key === 'Enter') loadMessages()">
+                <input type="number" id="msg-user-id" placeholder="User ID" min="1" onkeydown="if (event.key === 'Enter') loadMessages()">
+                <button type="button" class="btn btn-primary" onclick="loadMessages()">Search</button>
+            </div>
+            <div class="table-wrap">
+                <table id="messages-table">
+                    <thead><tr><th>ID</th><th>From (user ID)</th><th>To (user ID)</th><th>Message</th><th>Sent</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="js/admin.js"></script>
 </body>
 </html>
