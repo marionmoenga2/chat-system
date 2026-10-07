@@ -4,8 +4,9 @@ audio/video flows directly between browsers (mesh WebRTC).
 """
 from typing import Dict, Set
 from app.websocket_manager import manager
+from app import settings_store
 
-MAX_PARTICIPANTS = 6  # mesh gets heavy beyond ~4-6 people
+# Maximum call size is an admin setting (see settings_store)
 GROUP_CALL_TYPES = {"call_start", "call_invite", "call_join", "call_decline", "call_leave"}
 
 
@@ -56,9 +57,10 @@ async def _invite(room: CallRoom, inviter_id: int, inviter_name: str, target_id:
             inviter_id,
         )
         return
-    if len(room.members) + len(room.invited) >= MAX_PARTICIPANTS:
+    limit = settings_store.get_int("max_call_participants")
+    if len(room.members) + len(room.invited) >= limit:
         await manager.send_personal_message(
-            {"type": "call_full", "call_id": room.call_id}, inviter_id
+            {"type": "call_full", "call_id": room.call_id, "max": limit}, inviter_id
         )
         return
     room.invited.add(target_id)

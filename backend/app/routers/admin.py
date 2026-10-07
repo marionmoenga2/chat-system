@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
-from app import crud, schemas, auth, models
+from app import crud, schemas, auth, models, settings_store
+from app.websocket_manager import manager
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -104,3 +106,64 @@ def get_dashboard_stats(
         "active_users": active_users,
         "online_now": online_now
     }
+
+
+# ---------- Settings ----------
+
+class SettingsUpdate(BaseModel):
+    maintenance_mode: Optional[bool] = None
+    max_call_participants: Optional[int] = Field(default=None, ge=2, le=12)
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=72)
+
+
+def _current_settings():
+    return {
+        "maintenance_mode": settings_store.get_bool("maintenance_mode"),
+        "max_call_participants": settings_store.get_int("max_call_participants"),
+    }
+
+
+@router.get("/settings")
+def get_settings(admin = Depends(auth.get_current_admin)):
+    """Current admin-editable settings."""
+    return _current_settings()
+
+
+@router.put("/settings")
+async def update_settings(body: SettingsUpdate, admin = Depends(auth.get_current_admin)):
+    """Change settings. Everyone online is told when maintenance mode switches."""
+    was_on = settings_store.get_bool("maintenance_mode")
+    updates = {}
+    if body.maintenance_mode is not None:
+        updates["maintenance_mode"] = "true" if body.maintenance_mode else "false"
+    if body.max_call_participants is not None:
+        updates["max_call_participants"] = body.max_call_participants
+    if updates:
+        settings_store.set_values(updates)
+
+    if body.maintenance_mode is not None and body.maintenance_mode != was_on:
+        await manager.broadcast({
+            "type": "maintenance",
+            "on": body.maintenance_mode,
+            "message": "Chat is under maintenance. Please try again soon."
+                       if body.maintenance_mode else "Chat is back. You can send messages again.",
+        })
+    return _current_settings()
+
+
+@router.post("/change-password")
+def change_password(
+    body: PasswordChange,
+    db: Session = Depends(get_db),
+    admin = Depends(auth.get_current_admin)
+):
+    """Change the logged-in admin's own password."""
+    if not auth.verify_password(body.current_password, admin.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    admin.password_hash = auth.get_password_hash(body.new_password)
+    db.commit()
+    return {"message": "Password changed"}

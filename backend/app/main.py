@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import engine, Base, SessionLocal
 from app import auth, crud, models
 from app.websocket_manager import manager
+from app import settings_store
 from app.routers import auth as auth_router, users, messages, admin, extras, groups
 from app.routers.extras import serialize_message
 from app.routers.groups import serialize_group_message, get_membership, member_ids_of
@@ -159,11 +160,17 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                 await websocket.close(code=4001)
                 return
             username = user.username
+            is_admin = bool(user.is_admin)
     except Exception:
         await websocket.close(code=4001)
         return
 
     await manager.connect(websocket, user_id)
+    if not is_admin and settings_store.get_bool("maintenance_mode"):
+        await manager.send_personal_message({
+            "type": "maintenance", "on": True,
+            "message": "Chat is under maintenance. Please try again soon."
+        }, user_id)
     await manager.broadcast({
         "type": "user_status",
         "user_id": user_id,
@@ -181,6 +188,14 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                     continue
 
                 msg_type = message_data.get("type", "private")
+
+                # Maintenance mode: only admins can send messages or use calls
+                if msg_type != "typing" and not is_admin and settings_store.get_bool("maintenance_mode"):
+                    await manager.send_personal_message({
+                        "type": "maintenance", "on": True,
+                        "message": "Chat is under maintenance. Please try again soon."
+                    }, user_id)
+                    continue
                 content = (message_data.get("content") or "").strip()[:2000]
 
                 receiver_id = message_data.get("receiver_id")

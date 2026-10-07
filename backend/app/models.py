@@ -75,3 +75,11 @@ class GroupMessage(Base):
     reply_to_id = Column(Integer, ForeignKey("group_messages.id"), nullable=True)
 
     sender = relationship("User", foreign_keys=[sender_id])
+
+
+# ---------- Admin settings ----------
+
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+    key = Column(String(50), primary_key=True)
+    value = Column(String(200), nullable=False)
