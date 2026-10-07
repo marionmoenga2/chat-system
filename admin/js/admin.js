@@ -3,17 +3,14 @@
  * Handles admin authentication, user management, and message monitoring.
  */
 
-// Uses your local server when testing on your own machine, and the live backend when deployed.
-// TODO: replace the URL below with your backend URL (same as API_URL in frontend/js/config.js).
-const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://localhost:8000'
-    : 'https://YOUR-BACKEND.onrender.com';
+// API_URL comes from js/config.js (the same file the login page uses), so it must load first.
+const API_BASE = (typeof API_URL !== 'undefined') ? API_URL : 'http://localhost:8000';
 
 let adminToken = localStorage.getItem('admin_token');
 
 // Check auth on load
 if (!adminToken && !window.location.pathname.includes('index')) {
-    window.location.href = 'index.html';
+    window.location.href = 'index.html?logout=1';
 }
 
 function getHeaders() {
@@ -179,8 +176,8 @@ async function loadMessages() {
 
 // Logout
 function logout() {
-    localStorage.removeItem('admin_token');
-    window.location.href = 'index.html';
+    ['token', 'user', 'admin_token', 'admin_user'].forEach(k => localStorage.removeItem(k));
+    window.location.href = 'index.html?logout=1';
 }
 
 // Load initial data if on dashboard
