@@ -3,89 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Panel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<title>ChatWave Admin</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%2310b981'/><text x='50' y='68' font-size='54' text-anchor='middle'>🛡</text></svg>">
 <style>
 :root {
-    --ink: #14213d; --ink-hover: #22345c; --canvas: #eff2f7; --surface: #fff;
-    --line: #dde3ec; --text: #1b2438; --muted: #64708a;
-    --primary: #0e7490; --primary-soft: #e0f2f7;
-    --good: #15803d; --good-soft: #dcfce7; --bad: #b91c1c; --bad-soft: #fee2e2;
+    --emerald: #10b981; --teal: #14b8a6; --cyan: #22d3ee;
+    --s900: #0b1220; --s800: #111b2e; --s700: #1e2b42; --s400: #94a3b8; --s200: #e2e8f0;
+    --danger: #f87171; --line: rgba(148,163,184,.18);
 }
 * { box-sizing: border-box; }
-body { margin: 0; font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    background: var(--canvas); color: var(--text); font-size: 15px; line-height: 1.5; display: flex; min-height: 100vh; }
+body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--s900);
+    color: var(--s200); font-size: 15px; line-height: 1.5; display: flex; min-height: 100vh; }
 .hidden { display: none !important; }
 
-/* Sidebar */
-.sidebar { width: 232px; background: var(--ink); color: #fff; padding: 24px 16px; display: flex;
-    flex-direction: column; position: sticky; top: 0; height: 100vh; flex-shrink: 0; }
-.brand { font-weight: 600; font-size: 1.15rem; padding: 0 10px 22px; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 16px; }
-.brand small { display: block; font-weight: 400; font-size: .8rem; color: #9fb0d0; }
+.sidebar { width: 236px; background: var(--s800); border-right: 1px solid var(--line); padding: 24px 16px;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; flex-shrink: 0; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 22px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.logo { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--emerald), var(--teal) 55%, var(--cyan)); }
+.logo svg { width: 22px; height: 22px; }
+.brand-name { font-weight: 700; color: #fff; line-height: 1.2; }
+.brand-name small { display: block; font-weight: 400; font-size: .78rem; color: var(--s400); }
 .nav { display: flex; flex-direction: column; gap: 4px; }
-.nav-link { background: none; border: 0; color: #c5d0e6; font: inherit; text-align: left; padding: 10px 12px;
-    border-radius: 8px; cursor: pointer; border-left: 3px solid transparent; }
-.nav-link:hover { background: var(--ink-hover); color: #fff; }
-.nav-link.active { background: var(--ink-hover); color: #fff; border-left-color: #38bdf8; font-weight: 500; }
+.nav-link { background: none; border: 0; color: var(--s400); font: inherit; text-align: left; padding: 10px 12px;
+    border-radius: 10px; cursor: pointer; border-left: 3px solid transparent; }
+.nav-link:hover { background: var(--s700); color: #fff; }
+.nav-link.active { background: rgba(16,185,129,.14); color: var(--emerald); border-left-color: var(--emerald); font-weight: 600; }
 .sidebar .logout { margin-top: auto; }
 
-/* Main */
 main { flex: 1; min-width: 0; padding: 32px 36px; max-width: 1200px; }
-h2 { margin: 0 0 4px; font-size: 1.5rem; font-weight: 600; }
-.subtitle { margin: 0 0 24px; color: var(--muted); }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+h2 { margin: 0 0 4px; font-size: 1.55rem; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+.subtitle { margin: 0 0 24px; color: var(--s400); }
+.panel { background: var(--s800); border: 1px solid var(--line); border-radius: 16px; }
 
-/* Overview: one panel, four figures */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); }
 .stat { padding: 24px 26px; border-right: 1px solid var(--line); }
 .stat:last-child { border-right: 0; }
-.stat-label { color: var(--muted); font-size: .85rem; display: flex; align-items: center; gap: 8px; }
-.stat-value { font-size: 2.6rem; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--primary); }
-.live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.5); } 70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+.stat-label { color: var(--s400); font-size: .85rem; display: flex; align-items: center; gap: 8px; }
+.stat-value { font-size: 2.7rem; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums;
+    background: linear-gradient(90deg, var(--emerald), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--emerald); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,.55); } 70% { box-shadow: 0 0 0 8px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
 
-/* Tables */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th { text-align: left; font-weight: 500; font-size: .82rem; color: var(--muted); background: #f7f9fc;
+th { text-align: left; font-weight: 600; font-size: .8rem; color: var(--s400); background: rgba(11,18,32,.5);
     padding: 12px 16px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 td { padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 tbody tr:last-child td { border-bottom: 0; }
-tbody tr:hover { background: #f7fafc; }
-td:nth-child(4) { word-break: break-word; }
+tbody tr:hover { background: rgba(30,43,66,.6); }
 #messages-table td:nth-child(4) { min-width: 240px; word-break: break-word; }
+#users-table td:nth-child(3) { word-break: break-word; }
 
-.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 500; }
-.badge-active { background: var(--good-soft); color: var(--good); }
-.badge-banned { background: var(--bad-soft); color: var(--bad); }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+.badge-active { background: rgba(16,185,129,.16); color: var(--emerald); }
+.badge-banned { background: rgba(248,113,113,.16); color: var(--danger); }
 .actions { white-space: nowrap; }
-.btn { font: inherit; font-size: .84rem; padding: 5px 12px; border-radius: 7px; cursor: pointer; border: 1px solid transparent; background: #fff; }
-.btn-danger { color: var(--bad); border-color: #f1b8b8; }
-.btn-danger:hover { background: var(--bad-soft); }
-.btn-success { color: var(--good); border-color: #a6dbb8; }
-.btn-success:hover { background: var(--good-soft); }
-.btn-primary { background: var(--primary); color: #fff; padding: 8px 18px; }
-.btn-primary:hover { background: #0b6279; }
+.btn { font: inherit; font-size: .84rem; padding: 5px 12px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; background: transparent; }
+.btn-danger { color: var(--danger); border-color: rgba(248,113,113,.4); }
+.btn-danger:hover { background: rgba(248,113,113,.14); }
+.btn-success { color: var(--emerald); border-color: rgba(16,185,129,.4); }
+.btn-success:hover { background: rgba(16,185,129,.14); }
+.btn-primary { background: linear-gradient(90deg, var(--emerald), var(--teal)); color: #04211a; font-weight: 700; padding: 9px 20px; border-radius: 12px; }
+.btn-primary:hover { filter: brightness(1.08); }
 
-/* Filters */
 .filters { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px; border-bottom: 1px solid var(--line); }
-.filters input { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; min-width: 0; }
+.filters input { font: inherit; padding: 9px 14px; border: 2px solid var(--s700); border-radius: 12px; background: var(--s900); color: #fff; min-width: 0; }
+.filters input::placeholder { color: #64748b; }
+.filters input:focus { outline: none; border-color: var(--emerald); box-shadow: 0 0 0 4px rgba(16,185,129,.18); }
 #msg-search { flex: 1 1 220px; }
 #msg-user-id { width: 130px; }
 
-:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--emerald); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
 
 @media (max-width: 800px) {
     body { flex-direction: column; }
-    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center;
-        flex-wrap: wrap; padding: 12px 16px; gap: 8px; }
+    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; flex-wrap: wrap;
+        padding: 12px 16px; gap: 8px; border-right: 0; border-bottom: 1px solid var(--line); }
     .brand { border: 0; padding: 0; margin: 0; flex: 1 1 100%; }
     .nav { flex-direction: row; flex: 1; }
     .nav-link { border-left: 0; border-bottom: 3px solid transparent; border-radius: 8px 8px 0 0; }
-    .nav-link.active { border-bottom-color: #38bdf8; }
+    .nav-link.active { border-bottom-color: var(--emerald); }
     .sidebar .logout { margin-top: 0; }
     main { padding: 20px 14px; }
     .stats { grid-template-columns: 1fr 1fr; }
@@ -97,7 +96,14 @@ td:nth-child(4) { word-break: break-word; }
 <body>
 
 <aside class="sidebar">
-    <div class="brand">Chat System<small>Admin panel</small></div>
+    <div class="brand">
+        <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>
+            </svg>
+        </div>
+        <div class="brand-name">ChatWave Admin<small>Control Center</small></div>
+    </div>
     <nav class="nav">
         <button type="button" class="nav-link active" onclick="showSection('dashboard')">Overview</button>
         <button type="button" class="nav-link" onclick="showSection('users')">Users</button>
@@ -148,6 +154,7 @@ td:nth-child(4) { word-break: break-word; }
     </section>
 </main>
 
+<script src="js/config.js"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>
