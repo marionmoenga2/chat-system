@@ -39,8 +39,11 @@ app.include_router(admin.router)
 app.include_router(extras.router)
 app.include_router(groups.router)
 
-# Call setup messages that are relayed between two users
-CALL_TYPES = {"call_offer", "call_answer", "call_ice", "call_end", "call_reject", "call_media"}
+# Call setup messages that are relayed between users
+CALL_TYPES = {
+    "call_offer", "call_answer", "call_ice", "call_end", "call_reject",
+    "call_media", "call_invite", "call_roster",
+}
 
 
 def process_private(db: Session, user_id: int, receiver_id: int, content: str, message_data: dict):
@@ -113,13 +116,28 @@ async def relay_call(user_id: int, username: str, receiver_id: int, msg_type: st
     if isinstance(candidate, dict) and len(json.dumps(candidate)) < 3000:
         relay["candidate"] = candidate
 
-    if "video" in data:
-        relay["video"] = bool(data.get("video"))
+    # People already in the call (used when adding someone to a call)
+    participants = data.get("participants")
+    if isinstance(participants, list):
+        cleaned = []
+        for p in participants[:8]:
+            if not isinstance(p, dict):
+                continue
+            try:
+                pid = int(p.get("id"))
+            except (TypeError, ValueError):
+                continue
+            cleaned.append({"id": pid, "name": str(p.get("name") or "")[:50]})
+        relay["participants"] = cleaned
+
+    for key in ("video", "join"):
+        if key in data:
+            relay[key] = bool(data.get(key))
     if "reason" in data:
         relay["reason"] = str(data.get("reason"))[:32]
 
     if receiver_id not in manager.get_online_users():
-        if msg_type == "call_offer":
+        if msg_type in ("call_offer", "call_invite"):
             await manager.send_personal_message(
                 {"type": "call_unavailable", "from_id": receiver_id, "call_id": call_id},
                 user_id,
