@@ -68,3 +68,33 @@ def get_current_user_info(current_user = Depends(auth_utils.get_current_user)):
 def get_my_phone(current_user = Depends(auth_utils.get_current_user)):
     """Only the account owner can read their own phone number."""
     return {"phone": current_user.phone}
+
+
+# ---------- Update my own phone number (private) ----------
+import re
+from pydantic import BaseModel, field_validator
+
+
+class PhoneUpdate(BaseModel):
+    phone: str
+
+    @field_validator("phone")
+    @classmethod
+    def clean_phone(cls, v):
+        digits = re.sub(r"[\s\-().]", "", v or "")
+        if not re.fullmatch(r"\+[1-9]\d{7,14}", digits):
+            raise ValueError("Enter a valid phone number with country code, e.g. +254712345678")
+        return digits
+
+
+@router.put("/me/phone")
+def set_my_phone(
+    body: PhoneUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(auth_utils.get_current_user)
+):
+    """Add or change your own phone number. It is never returned to other users."""
+    user = crud.get_user_by_id(db, current_user.id)
+    user.phone = body.phone
+    db.commit()
+    return {"phone": body.phone}
