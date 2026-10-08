@@ -1,0 +1,84 @@
+/* Brighter login / register page (loads after the main stylesheet) */
+.auth-container {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 45%, #f472b6 100%);
+}
+
+/* soft floating color blobs */
+.auth-container::before,
+.auth-container::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.55;
+    pointer-events: none;
+}
+.auth-container::before { width: 380px; height: 380px; top: -120px; left: -100px; background: #fde68a; }
+.auth-container::after  { width: 420px; height: 420px; bottom: -160px; right: -120px; background: #67e8f9; }
+
+.auth-box {
+    position: relative;
+    z-index: 1;
+    padding: 2.5rem 2.25rem 2rem;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 30px 60px -20px rgba(67, 56, 202, 0.45);
+}
+
+/* chat-bubble logo above the title */
+.auth-box h1 {
+    color: #1e1b4b;
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+.auth-box h1::before {
+    content: "";
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    border-radius: 20px;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5z'/%3E%3C/svg%3E") center / 32px no-repeat,
+        linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    box-shadow: 0 14px 24px -10px rgba(99, 102, 241, 0.7);
+    transform: rotate(-6deg);
+}
+
+.form-section h2 { color: #1e1b4b; font-weight: 800; }
+
+.input-group input {
+    padding: 0.85rem 1rem;
+    border: 2px solid #e0e7ff;
+    border-radius: 14px;
+    background: #f8faff;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+.input-group input:focus {
+    background: #fff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.16);
+}
+
+.auth-box .btn-primary {
+    padding: 0.9rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    font-weight: 700;
+    box-shadow: 0 12px 22px -10px rgba(99, 102, 241, 0.8);
+    transition: transform 0.15s, filter 0.2s;
+}
+.auth-box .btn-primary:hover { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); filter: brightness(1.08); transform: translateY(-1px); }
+.auth-box .btn-primary:disabled { opacity: 0.7; cursor: wait; transform: none; }
+
+.toggle-text a { color: #6366f1; }
+.toggle-text a:hover { text-decoration: underline; }
+
+.error-message { color: #dc2626; }
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-box { animation: none; }
+}
