@@ -6,26 +6,28 @@
 (function () {
     'use strict';
 
+    // Vivid three-color wallpapers. The first one is the default.
     const PRESETS = [
-        { id: 'classic',  name: 'Classic',  colorA: '#f6f8fd', colorB: '#e0e7ff', angle: 135, pattern: 'none' },
-        { id: 'aurora',   name: 'Aurora',   colorA: '#c7d2fe', colorB: '#a5f3fc', angle: 135, pattern: 'dots' },
-        { id: 'sunset',   name: 'Sunset',   colorA: '#fde68a', colorB: '#fbcfe8', angle: 160, pattern: 'waves' },
-        { id: 'ocean',    name: 'Ocean',    colorA: '#bae6fd', colorB: '#818cf8', angle: 200, pattern: 'waves' },
-        { id: 'forest',   name: 'Forest',   colorA: '#bbf7d0', colorB: '#6ee7b7', angle: 150, pattern: 'doodle' },
-        { id: 'lavender', name: 'Lavender', colorA: '#e9d5ff', colorB: '#fbcfe8', angle: 135, pattern: 'dots' },
-        { id: 'peach',    name: 'Peach',    colorA: '#fed7aa', colorB: '#fecaca', angle: 120, pattern: 'lines' },
-        { id: 'mint',     name: 'Mint',     colorA: '#d1fae5', colorB: '#cffafe', angle: 135, pattern: 'grid' },
-        { id: 'slate',    name: 'Slate',    colorA: '#e2e8f0', colorB: '#cbd5e1', angle: 135, pattern: 'grid' },
-        { id: 'midnight', name: 'Midnight', colorA: '#1e1b4b', colorB: '#4338ca', angle: 160, pattern: 'doodle' },
-        { id: 'night',    name: 'Night',    colorA: '#0f172a', colorB: '#1e3a8a', angle: 180, pattern: 'dots' },
-        { id: 'ember',    name: 'Ember',    colorA: '#7c2d12', colorB: '#be123c', angle: 145, pattern: 'lines' }
+        { id: 'electric', name: 'Electric', colorA: '#4f46e5', colorC: '#8b5cf6', colorB: '#ec4899', useC: true, angle: 135, pattern: 'dots' },
+        { id: 'sunset',   name: 'Sunset',   colorA: '#ff6a3d', colorC: '#ff3d77', colorB: '#9333ea', useC: true, angle: 160, pattern: 'waves' },
+        { id: 'ocean',    name: 'Ocean',    colorA: '#06b6d4', colorC: '#3b82f6', colorB: '#4f46e5', useC: true, angle: 200, pattern: 'waves' },
+        { id: 'tropical', name: 'Tropical', colorA: '#22d3ee', colorC: '#34d399', colorB: '#a3e635', useC: true, angle: 135, pattern: 'doodle' },
+        { id: 'candy',    name: 'Candy',    colorA: '#f472b6', colorC: '#c084fc', colorB: '#60a5fa', useC: true, angle: 150, pattern: 'dots' },
+        { id: 'flame',    name: 'Flame',    colorA: '#f59e0b', colorC: '#ef4444', colorB: '#be185d', useC: true, angle: 145, pattern: 'lines' },
+        { id: 'emerald',  name: 'Emerald',  colorA: '#10b981', colorC: '#14b8a6', colorB: '#0ea5e9', useC: true, angle: 135, pattern: 'grid' },
+        { id: 'grape',    name: 'Grape',    colorA: '#7c3aed', colorC: '#a855f7', colorB: '#ec4899', useC: true, angle: 160, pattern: 'doodle' },
+        { id: 'lime',     name: 'Lime pop', colorA: '#facc15', colorC: '#a3e635', colorB: '#22c55e', useC: true, angle: 135, pattern: 'doodle' },
+        { id: 'rose',     name: 'Rose gold', colorA: '#fda4af', colorC: '#fb7185', colorB: '#f59e0b', useC: true, angle: 135, pattern: 'waves' },
+        { id: 'midnight', name: 'Midnight', colorA: '#1e1b4b', colorC: '#4338ca', colorB: '#7c3aed', useC: true, angle: 160, pattern: 'dots' },
+        { id: 'neon',     name: 'Neon night', colorA: '#0f172a', colorC: '#1d4ed8', colorB: '#06b6d4', useC: true, angle: 180, pattern: 'grid' }
     ];
 
     const PATTERN_LABELS = { none: 'None', dots: 'Dots', grid: 'Grid', lines: 'Lines', waves: 'Waves', doodle: 'Doodle' };
 
     const DEFAULTS = {
-        colorA: '#c7d2fe', colorB: '#fbcfe8', angle: 135, pattern: 'dots',
-        image: null, dim: 0.15, blur: 0, presetId: null
+        colorA: PRESETS[0].colorA, colorB: PRESETS[0].colorB, colorC: PRESETS[0].colorC, useC: true,
+        angle: PRESETS[0].angle, pattern: PRESETS[0].pattern,
+        image: null, dim: 0.15, blur: 0, presetId: PRESETS[0].id
     };
 
     const IMAGE_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -38,8 +40,13 @@
         #wallpaper-layer { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
         .chat-main > :not(#wallpaper-layer) { position: relative; z-index: 1; }
 
-        .wp-base, .wp-pattern, .wp-dim { position: absolute; inset: 0; }
+        .wp-base, .wp-glow, .wp-pattern, .wp-dim { position: absolute; inset: 0; }
         .wp-base { background-size: cover; background-position: center; }
+        .wp-glow {
+            background:
+                radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.30), transparent 42%),
+                radial-gradient(circle at 88% 92%, rgba(255, 255, 255, 0.20), transparent 48%);
+        }
         .wp-pattern { background-repeat: repeat; }
 
         /* Keep the "pick a chat" message readable on any wallpaper */
@@ -48,8 +55,16 @@
             margin: auto;
             padding: 1.25rem 1.5rem;
             border-radius: 18px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.92);
             box-shadow: 0 10px 24px -14px rgba(15, 23, 42, 0.5);
+        }
+
+        /* A light outline keeps bubbles easy to see on strong colors */
+        .chat-main.has-wallpaper .message.sent {
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6), 0 10px 20px -10px rgba(0, 0, 0, 0.5);
+        }
+        .chat-main.has-wallpaper .message.received {
+            box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.45);
         }
 
         .wp-open {
@@ -96,8 +111,8 @@
             font-size: 0.88rem;
             line-height: 1.35;
         }
-        .wp-bubble.recv { align-self: flex-start; background: #fff; color: #0f172a; border: 1px solid #e8edf5; border-bottom-left-radius: 5px; }
-        .wp-bubble.sent { align-self: flex-end; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: #fff; border-bottom-right-radius: 5px; }
+        .wp-bubble.recv { align-self: flex-start; background: #fff; color: #0f172a; border-bottom-left-radius: 5px; box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.45); }
+        .wp-bubble.sent { align-self: flex-end; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: #fff; border-bottom-right-radius: 5px; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6), 0 10px 20px -10px rgba(0, 0, 0, 0.5); }
 
         .wp-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
 
@@ -119,6 +134,7 @@
 
         .wp-color { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #475569; }
         .wp-color input[type="color"] { width: 46px; height: 34px; padding: 0; border: none; border-radius: 8px; background: none; cursor: pointer; }
+        .wp-color input[type="checkbox"] { width: 17px; height: 17px; accent-color: #6366f1; }
 
         .wp-slider { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.7rem; font-size: 0.85rem; font-weight: 600; color: #475569; }
         .wp-slider > span:first-child { width: 78px; flex-shrink: 0; }
@@ -168,6 +184,8 @@
         const out = Object.assign({}, DEFAULTS, s || {});
         if (!HEX_RE.test(out.colorA)) out.colorA = DEFAULTS.colorA;
         if (!HEX_RE.test(out.colorB)) out.colorB = DEFAULTS.colorB;
+        if (!HEX_RE.test(out.colorC)) out.colorC = DEFAULTS.colorC;
+        out.useC = !!out.useC;
         out.angle = Math.min(360, Math.max(0, Number(out.angle) || 0));
         if (!PATTERN_LABELS[out.pattern]) out.pattern = 'none';
         if (!(typeof out.image === 'string' && IMAGE_RE.test(out.image))) out.image = null;
@@ -177,11 +195,13 @@
         return out;
     }
 
+    // What you chose, or the vivid default if you have not chosen anything
     function load() {
         try {
             const raw = localStorage.getItem(storageKey());
-            return raw ? clean(JSON.parse(raw)) : null;
-        } catch (e) { return null; }
+            if (raw) return clean(JSON.parse(raw));
+        } catch (e) { /* fall through to the default */ }
+        return clean(Object.assign({}, PRESETS[0], { image: null, dim: 0, blur: 0, presetId: PRESETS[0].id }));
     }
 
     function save(s) {
@@ -203,12 +223,19 @@
 
     function isDark(s) {
         if (s.image) return s.dim >= 0.35;
-        return (brightness(s.colorA) + brightness(s.colorB)) / 2 < 0.45;
+        const values = [brightness(s.colorA), brightness(s.colorB)];
+        if (s.useC) values.push(brightness(s.colorC));
+        return values.reduce((a, b) => a + b, 0) / values.length < 0.55;
+    }
+
+    function gradientCss(s) {
+        const stops = s.useC ? `${s.colorA}, ${s.colorC}, ${s.colorB}` : `${s.colorA}, ${s.colorB}`;
+        return `linear-gradient(${s.angle}deg, ${stops})`;
     }
 
     function patternUri(name, dark) {
         const c = dark ? '%23ffffff' : '%230f172a';
-        const o = dark ? '0.16' : '0.09';
+        const o = dark ? '0.18' : '0.10';
         const shapes = {
             dots: `<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'><circle cx='5' cy='5' r='1.8' fill='${c}' fill-opacity='${o}'/><circle cx='20' cy='20' r='1.8' fill='${c}' fill-opacity='${o}'/></svg>`,
             grid: `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><path d='M36 0H0V36' fill='none' stroke='${c}' stroke-opacity='${o}' stroke-width='1'/></svg>`,
@@ -234,9 +261,16 @@
                 base.style.transform = 'scale(1.1)';
             }
         } else {
-            base.style.background = `linear-gradient(${s.angle}deg, ${s.colorA}, ${s.colorB})`;
+            base.style.background = gradientCss(s);
         }
         el.appendChild(base);
+
+        // Soft light spots that give plain gradients some depth
+        if (!s.image) {
+            const glow = document.createElement('div');
+            glow.className = 'wp-glow';
+            el.appendChild(glow);
+        }
 
         if (s.pattern && s.pattern !== 'none') {
             const uri = patternUri(s.pattern, isDark(s));
@@ -258,12 +292,6 @@
 
     function applyWallpaper(s) {
         if (!layer) return;
-        if (!s) {
-            layer.style.display = 'none';
-            layer.innerHTML = '';
-            chatMain.classList.remove('has-wallpaper');
-            return;
-        }
         renderLayer(layer, s);
         layer.style.display = 'block';
         chatMain.classList.add('has-wallpaper');
@@ -325,6 +353,9 @@
                         <label class="wp-color">Color 1 <input type="color" id="wp-colorA"></label>
                         <label class="wp-color">Color 2 <input type="color" id="wp-colorB"></label>
                     </div>
+                    <div class="wp-row" style="margin-top:0.6rem">
+                        <label class="wp-color"><input type="checkbox" id="wp-useC"> Third color <input type="color" id="wp-colorC"></label>
+                    </div>
                     <label class="wp-slider"><span>Direction</span>
                         <input type="range" id="wp-angle" min="0" max="360" step="5">
                         <output id="wp-angle-out"></output>
@@ -350,7 +381,7 @@
                     <p class="wp-note">Photos stay on this device and are never uploaded.</p>
 
                     <div class="fx-actions">
-                        <button type="button" class="fx-btn ghost" id="wp-reset">Reset</button>
+                        <button type="button" class="fx-btn ghost" id="wp-reset">Default</button>
                         <button type="button" class="fx-btn ghost" id="wp-cancel">Cancel</button>
                         <button type="button" class="fx-btn primary" id="wp-save">Save</button>
                     </div>
@@ -367,7 +398,7 @@
             btn.dataset.id = p.id;
             btn.innerHTML = '<div class="wp-mini"></div><span></span>';
             btn.querySelector('span').textContent = p.name;
-            renderLayer(btn.querySelector('.wp-mini'), clean(Object.assign({}, p, { dim: 0, blur: 0 })));
+            renderLayer(btn.querySelector('.wp-mini'), clean(Object.assign({}, p, { image: null, dim: 0, blur: 0, presetId: p.id })));
             btn.addEventListener('click', () => choosePreset(p));
             swatches.appendChild(btn);
         });
@@ -386,6 +417,8 @@
 
         $('wp-colorA').addEventListener('input', (e) => { draft.colorA = e.target.value; draft.image = null; edited(); });
         $('wp-colorB').addEventListener('input', (e) => { draft.colorB = e.target.value; draft.image = null; edited(); });
+        $('wp-colorC').addEventListener('input', (e) => { draft.colorC = e.target.value; draft.useC = true; draft.image = null; edited(); });
+        $('wp-useC').addEventListener('change', (e) => { draft.useC = e.target.checked; draft.image = null; edited(); });
         $('wp-angle').addEventListener('input', (e) => { draft.angle = Number(e.target.value); edited(); });
         $('wp-dim').addEventListener('input', (e) => { draft.dim = Number(e.target.value) / 100; edited(); });
         $('wp-blur').addEventListener('input', (e) => { draft.blur = Number(e.target.value); edited(); });
@@ -404,7 +437,7 @@
     }
 
     function openDialog() {
-        draft = clean(load() || {});
+        draft = clean(load());
         syncControls();
         updatePreview();
         $('wp-modal').classList.add('open');
@@ -418,6 +451,8 @@
     function syncControls() {
         $('wp-colorA').value = draft.colorA;
         $('wp-colorB').value = draft.colorB;
+        $('wp-colorC').value = draft.colorC;
+        $('wp-useC').checked = draft.useC;
         $('wp-angle').value = draft.angle;
         $('wp-angle-out').textContent = draft.angle + '\u00b0';
         $('wp-dim').value = Math.round(draft.dim * 100);
@@ -444,7 +479,8 @@
 
     function choosePreset(p) {
         draft = clean({
-            colorA: p.colorA, colorB: p.colorB, angle: p.angle, pattern: p.pattern,
+            colorA: p.colorA, colorB: p.colorB, colorC: p.colorC, useC: p.useC,
+            angle: p.angle, pattern: p.pattern,
             image: null, dim: 0, blur: 0, presetId: p.id
         });
         syncControls();
@@ -488,9 +524,9 @@
 
     function resetWallpaper() {
         removeSaved();
-        applyWallpaper(null);
+        applyWallpaper(load());   // back to the vivid default
         closeDialog();
-        showNotification('Wallpaper reset');
+        showNotification('Wallpaper set to the default');
     }
 
     // ---------- Page setup ----------
@@ -535,9 +571,7 @@
 
         injectDialog();
         addButtons();
-
-        const saved = load();
-        if (saved) applyWallpaper(saved);
+        applyWallpaper(load());
     }
 
     if (document.readyState === 'loading') {
