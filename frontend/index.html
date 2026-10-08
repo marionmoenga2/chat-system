@@ -108,12 +108,27 @@
             .auth-main { justify-content: flex-start; padding: 28px 16px 40px; }
             .auth-panel { padding: 28px 22px 22px; }
         }
+    
+        /* ---------- Colour treatment for the side panel ---------- */
+        .auth-aside { background: #1f4fd8; overflow: hidden; }
+        .auth-aside .brand, .auth-aside .aside-body { position: relative; z-index: 1; }
+        .brand svg rect { fill: #fff; }
+        .brand svg path { fill: #1f4fd8; }
+        .shape { position: absolute; pointer-events: none; }
+        .shape.s1 { width: 340px; height: 340px; border-radius: 50%; background: #ffc857; top: -120px; right: -110px; }
+        .shape.s2 { width: 280px; height: 280px; border-radius: 50%; background: #ff6b57; bottom: -110px; left: -90px; }
+        .shape.s3 { width: 150px; height: 150px; border-radius: 34px; background: #17c3a5; right: 56px; bottom: 84px; transform: rotate(16deg); }
+        .aside-text { color: rgba(255,255,255,.9); }
+        .aside-title em { color: #ffd166; }
+        .preview { box-shadow: 0 24px 44px -16px rgba(8,22,70,.5); }
+        @media (max-width: 900px) { .shape { display: none; } }
     </style>
 </head>
 <body>
     <div class="auth-shell">
 
         <aside class="auth-aside">
+            <div class="shape s1"></div><div class="shape s2"></div><div class="shape s3"></div>
             <div class="brand">
                 <svg viewBox="0 0 32 32" aria-hidden="true">
                     <rect width="32" height="32" rx="8" fill="#2f6fed"/>
