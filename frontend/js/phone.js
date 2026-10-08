@@ -88,7 +88,7 @@
         document.body.insertAdjacentHTML('beforeend', `
             <div class="phone-toast" id="phone-toast" role="status">
                 <strong>Add your phone number</strong>
-                It stays private and is never shown to other users.
+                Other users never see it. Only site administrators can.
                 <div class="phone-toast-actions">
                     <button type="button" class="phone-btn" id="phone-toast-add">Add number</button>
                     <button type="button" class="phone-btn ghost" id="phone-toast-later">Later</button>
@@ -97,7 +97,7 @@
             <div class="phone-backdrop" id="phone-modal" role="dialog" aria-modal="true" aria-labelledby="phone-title">
                 <div class="phone-card">
                     <h3 id="phone-title">Your phone number</h3>
-                    <p>Include your country code. Only you can see it. It is never shown to other users.</p>
+                    <p>Include your country code. Other users never see it; only site administrators can.</p>
                     <label for="phone-input">Phone number</label>
                     <input type="tel" id="phone-input" placeholder="+254 712 345 678" autocomplete="tel" inputmode="tel">
                     <div class="phone-error" id="phone-error" role="alert"></div>

@@ -92,6 +92,7 @@ async function loadUsers() {
                 <td>${id}</td>
                 <td>${esc(user.username)}</td>
                 <td>${esc(user.email)}</td>
+                <td>${esc(user.phone || '–')}</td>
                 <td><span class="badge ${user.is_active ? 'badge-active' : 'badge-banned'}">
                     ${user.is_active ? 'Active' : 'Banned'}
                 </span></td>

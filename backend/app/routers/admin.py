@@ -2,7 +2,7 @@
 Admin-only endpoints for user management and monitoring.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, undefer
 from typing import List, Optional
 from app.database import get_db
 from app import crud, schemas, auth, models, settings_store
@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
-@router.get("/users", response_model=List[schemas.UserResponse])
+@router.get("/users", response_model=List[schemas.AdminUserResponse])
 def admin_get_all_users(
     skip: int = 0,
     limit: int = 100,
@@ -19,7 +19,7 @@ def admin_get_all_users(
     admin = Depends(auth.get_current_admin)
 ):
     """Get all users (Admin only)."""
-    return crud.get_users(db, skip=skip, limit=limit)
+    return db.query(models.User).options(undefer(models.User.phone)).order_by(models.User.id).offset(skip).limit(limit).all()
 
 @router.post("/users/{user_id}/ban")
 def ban_user(

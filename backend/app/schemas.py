@@ -67,3 +67,8 @@ class WebSocketMessage(BaseModel):
     type: str  # "private", "broadcast", "typing"
     receiver_id: Optional[int] = None
     content: str
+
+
+class AdminUserResponse(UserResponse):
+    """Only returned by admin routes. Includes the private phone number."""
+    phone: Optional[str] = None
