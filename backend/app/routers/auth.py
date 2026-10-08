@@ -31,7 +31,7 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
         )
     
     # Create new user
-    return crud.create_user(db, username=user.username, email=user.email, password=user.password)
+    return crud.create_user(db, username=user.username, email=user.email, password=user.password, phone=user.phone)
 
 @router.post("/login", response_model=schemas.Token)
 def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
@@ -62,3 +62,9 @@ def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
 def get_current_user_info(current_user = Depends(auth_utils.get_current_user)):
     """Get information about the currently logged-in user."""
     return current_user
+
+
+@router.get("/me/phone")
+def get_my_phone(current_user = Depends(auth_utils.get_current_user)):
+    """Only the account owner can read their own phone number."""
+    return {"phone": current_user.phone}

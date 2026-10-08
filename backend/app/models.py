@@ -18,6 +18,7 @@ class User(Base):
     # "deferred" columns are only loaded when asked for, so listing users stays fast.
     avatar = deferred(Column(Text, nullable=True))        # profile photo as a small data URL
     bio = deferred(Column(String(300), nullable=True))    # short "about me" text
+    phone = deferred(Column(String(20), nullable=True))   # private: never sent to other users
 
     # Relationships
     sent_messages = relationship("Message", foreign_keys="Message.sender_id", back_populates="sender")

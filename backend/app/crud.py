@@ -19,11 +19,12 @@ def get_user_by_id(db: Session, user_id: int):
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(User).offset(skip).limit(limit).all()
 
-def create_user(db: Session, username: str, email: str, password: str):
+def create_user(db: Session, username: str, email: str, password: str, phone: str = None):
     db_user = User(
         username=username,
         email=email,
-        password_hash=get_password_hash(password)
+        password_hash=get_password_hash(password),
+        phone=phone
     )
     db.add(db_user)
     db.commit()

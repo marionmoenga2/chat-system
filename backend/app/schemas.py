@@ -1,7 +1,8 @@
 """
 Pydantic models for request/response validation and serialization.
 """
-from pydantic import BaseModel, EmailStr
+import re
+from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime
 from typing import Optional, List
 
@@ -12,6 +13,15 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    phone: str
+
+    @field_validator("phone")
+    @classmethod
+    def clean_phone(cls, v):
+        digits = re.sub(r"[\s\-().]", "", v or "")
+        if not re.fullmatch(r"\+[1-9]\d{7,14}", digits):
+            raise ValueError("Enter a valid phone number with country code, e.g. +254712345678")
+        return digits
 
 class UserResponse(UserBase):
     id: int

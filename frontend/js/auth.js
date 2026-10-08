@@ -88,6 +88,12 @@ function setBusy(form, busy) {
     if (btn) btn.disabled = busy;
 }
 
+// Remove spaces, dashes and brackets; accept only international format like +254712345678
+function cleanPhone(value) {
+    const digits = String(value || '').replace(/[\s\-().]/g, '');
+    return /^\+[1-9]\d{7,14}$/.test(digits) ? digits : null;
+}
+
 // ---------- UI ----------
 
 function toggleForms() {
@@ -146,8 +152,13 @@ if (registerFormEl) {
             const username = getField('reg-username');
             const email = getField('reg-email');
             const password = getField('reg-password');
+            const phone = cleanPhone(getField('reg-phone'));
+            if (!phone) {
+                showError('Enter your phone number with the country code, for example +254712345678.');
+                return;
+            }
 
-            const { ok, status, data } = await postJson('/api/auth/signup', { username, email, password });
+            const { ok, status, data } = await postJson('/api/auth/signup', { username, email, password, phone });
 
             if (ok) {
                 showError('Account created! Please log in.', 'success');
