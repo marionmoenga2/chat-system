@@ -87,6 +87,40 @@
             .shape.s3, .shape.s4 { display: none; }
             .field input { font-size: 16px; }
         }
+    
+        /* ---------- Button polish ---------- */
+        .auth-card .btn-primary {
+            height: 50px; margin-top: 10px; border-radius: 12px; letter-spacing: .01em;
+            background: var(--accent); color: #fff;
+            box-shadow: 0 3px 0 #1537a0, 0 8px 16px -6px rgba(31, 79, 216, .55);
+            transition: background .15s, transform .12s, box-shadow .12s;
+        }
+        .auth-card .btn-primary:hover { background: #2b5fe6; transform: translateY(-1px);
+            box-shadow: 0 4px 0 #1537a0, 0 12px 20px -6px rgba(31, 79, 216, .6); }
+        .auth-card .btn-primary:active { background: var(--accent-dark); transform: translateY(2px);
+            box-shadow: 0 1px 0 #1537a0, 0 4px 8px -4px rgba(31, 79, 216, .5); }
+        .auth-card .btn-primary:not(:disabled)::after { content: "\2192"; display: inline-block; margin-left: 8px;
+            transition: transform .15s; }
+        .auth-card .btn-primary:not(:disabled):hover::after { transform: translateX(4px); }
+        .auth-card .btn-primary:disabled { opacity: .85; transform: none; box-shadow: 0 3px 0 #1537a0; }
+        .auth-card .btn-primary:disabled::after { content: ""; display: inline-block; width: 15px; height: 15px;
+            margin-left: 10px; vertical-align: -2px; border: 2px solid rgba(255, 255, 255, .4);
+            border-top-color: #fff; border-radius: 50%; animation: btn-spin .7s linear infinite; }
+        @keyframes btn-spin { to { transform: rotate(360deg); } }
+
+        .toggle-password { height: 30px; padding: 0 12px; border-radius: 999px; background: #eef3fc;
+            color: var(--accent); font-weight: 600; transition: background .15s, color .15s; }
+        .toggle-password:hover { background: var(--accent); color: #fff; }
+
+        .toggle-text a { display: inline-block; margin-left: 8px; padding: 7px 16px; border: 1.5px solid var(--accent);
+            border-radius: 999px; font-weight: 600; transition: background .15s, color .15s; }
+        .toggle-text a:hover { background: var(--accent); color: #fff; text-decoration: none; }
+        .toggle-text a:focus-visible { outline: 3px solid rgba(31, 79, 216, .35); outline-offset: 2px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .auth-card .btn-primary, .auth-card .btn-primary::after { transition: none; }
+            .auth-card .btn-primary:disabled::after { animation: none; }
+        }
     </style>
 </head>
 <body>
