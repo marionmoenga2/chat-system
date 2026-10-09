@@ -714,7 +714,7 @@
         }
 
         function connect() {
-            ws = new WebSocket(`${WS_URL}/ws/${token}`);
+            ws = new WebSocket(`${API_URL.replace(/^http/, 'ws')}/ws/${token}`);   // same host as the working login
 
             ws.onopen = () => { attempts = 0; setConn(true); };
 
