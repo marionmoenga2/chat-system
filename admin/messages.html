@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatWave Admin - Messages</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%2310b981'/><text x='50' y='68' font-size='54' text-anchor='middle'>💬</text></svg>">
+
+    <style>
+        :root {
+            --emerald: #10b981;
+            --teal: #14b8a6;
+            --cyan: #22d3ee;
+            --s900: #0b1220;
+            --s800: #111b2e;
+            --s700: #1e2b42;
+            --s400: #94a3b8;
+            --s200: #e2e8f0;
+            --danger: #f87171;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background: var(--s900);
+            color: var(--s200);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        button, input, textarea { font-family: inherit; }
+
+        .app { display: flex; height: 100%; }
+
+        /* ---------- Left panel ---------- */
+        .panel {
+            display: flex;
+            flex-direction: column;
+            width: 340px;
+            min-height: 0;
+            background: var(--s800);
+            border-right: 1px solid var(--s700);
+        }
+
+        .panel-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.1rem 0.3rem;
+        }
+
+        .back {
+            color: var(--emerald);
+            font-size: 0.88rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .link-btn {
+            padding: 0.3rem 0.8rem;
+            border: 1px solid var(--s700);
+            border-radius: 999px;
+            background: transparent;
+            color: var(--s400);
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .link-btn:hover { color: #fff; border-color: var(--s400); }
+
+        .panel h1 {
+            padding: 0 1.1rem;
+            color: #fff;
+            font-size: 1.45rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .conn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin: 0.35rem 1.1rem 0;
+            font-size: 0.75rem;
+            color: var(--s400);
+        }
+        .conn i { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+        .conn.live i { background: var(--emerald); }
+
+        .broadcast-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin: 0.9rem 1.1rem 0.7rem;
+            padding: 0.8rem 1rem;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(90deg, var(--emerald), var(--teal));
+            color: #04211a;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 10px 22px -10px rgba(16, 185, 129, 0.7);
+            transition: transform 0.15s, filter 0.2s;
+        }
+        .broadcast-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+        .broadcast-btn svg { width: 19px; height: 19px; flex-shrink: 0; }
+        .pill {
+            margin-left: auto;
+            padding: 0.1rem 0.6rem;
+            border-radius: 999px;
+            background: rgba(4, 33, 26, 0.2);
+            font-size: 0.78rem;
+        }
+
+        .search { margin: 0 1.1rem 0.6rem; }
+        .search input {
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            border: 2px solid var(--s700);
+            border-radius: 12px;
+            background: var(--s900);
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .search input::placeholder { color: #64748b; }
+        .search input:focus { outline: none; border-color: var(--emerald); }
+
+        .filters { display: flex; gap: 0.4rem; margin: 0 1.1rem 0.6rem; }
+        .filters button {
+            flex: 1;
+            padding: 0.45rem;
+            border: 1px solid var(--s700);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--s400);
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .filters button.active {
+            border-color: var(--emerald);
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--emerald);
+        }
+
+        .user-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 0.6rem 0.8rem; }
+
+        .u-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.7rem;
+            border-radius: 14px;
+            cursor: pointer;
+        }
+        .u-row:hover { background: var(--s700); }
+        .u-row.active { background: rgba(16, 185, 129, 0.16); }
+
+        .av {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            color: #fff;
+            font-weight: 700;
+        }
+        .av.lg { width: 46px; height: 46px; }
+        .av img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .u-info { flex: 1; min-width: 0; }
+        .u-name {
+            overflow: hidden;
+            color: #fff;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .u-sub { font-size: 0.78rem; color: var(--s400); }
+        .u-sub.on { color: var(--emerald); font-weight: 700; }
+
+        .badge {
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border-radius: 11px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 22px;
+            text-align: center;
+        }
+
+        /* ---------- Conversation ---------- */
+        .thread {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+            background: radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.10), transparent 45%), var(--s900);
+        }
+
+        .mobile-back {
+            display: none;
+            padding: 0.6rem 1rem;
+            background: var(--s800);
+            border-bottom: 1px solid var(--s700);
+        }
+        .mobile-back button {
+            padding: 0.4rem 0.9rem;
+            border: none;
+            border-radius: 10px;
+            background: var(--s700);
+            color: var(--emerald);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .thread-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            min-height: 68px;
+            padding: 0.8rem 1.2rem;
+            background: var(--s800);
+            border-bottom: 1px solid var(--s700);
+        }
+        .t-name { color: #fff; font-size: 1.05rem; font-weight: 800; }
+        .t-hint { color: var(--s400); font-size: 0.9rem; }
+
+        .messages {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            gap: 0.45rem;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 1.2rem;
+        }
+
+        .bubble {
+            max-width: 70%;
+            padding: 0.55rem 0.9rem 0.4rem;
+            border-radius: 18px;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+        }
+        .bubble.sent {
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+            background: linear-gradient(135deg, var(--emerald), var(--teal));
+            color: #04211a;
+        }
+        .bubble.recv {
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+            background: var(--s700);
+            color: #fff;
+        }
+        .b-time { margin-top: 0.1rem; font-size: 0.68rem; text-align: right; opacity: 0.7; }
+
+        .quote {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 0.35rem;
+            padding: 0.3rem 0.6rem;
+            border-left: 3px solid var(--emerald);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.18);
+            font-size: 0.82rem;
+        }
+        .quote b { font-size: 0.72rem; }
+        .quote span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.85; }
+
+        .empty-note { margin: auto; padding: 2rem; text-align: center; color: var(--s400); }
+
+        .composer {
+            display: flex;
+            gap: 0.6rem;
+            padding: 0.8rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+            background: var(--s800);
+            border-top: 1px solid var(--s700);
+        }
+        .composer[hidden] { display: none; }
+        .composer input {
+            flex: 1;
+            min-width: 0;
+            padding: 0.8rem 1.1rem;
+            border: 2px solid var(--s700);
+            border-radius: 999px;
+            background: var(--s900);
+            color: #fff;
+            font-size: 1rem;
+        }
+        .composer input:focus { outline: none; border-color: var(--emerald); }
+        .composer button {
+            padding: 0 1.4rem;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--emerald), var(--teal));
+            color: #04211a;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .composer button:hover { filter: brightness(1.08); }
+
+        /* ---------- Announcement dialog ---------- */
+        .modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        .modal.open { display: flex; }
+
+        .modal-card {
+            width: 100%;
+            max-width: 460px;
+            max-height: calc(100dvh - 2rem);
+            overflow-y: auto;
+            padding: 1.5rem;
+            border: 1px solid var(--s700);
+            border-radius: 22px;
+            background: var(--s800);
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+        }
+        .modal-card h2 { margin-bottom: 0.25rem; color: #fff; font-size: 1.25rem; font-weight: 800; }
+        .modal-sub { margin-bottom: 1rem; color: var(--s400); font-size: 0.88rem; }
+
+        .modal-card textarea {
+            display: block;
+            width: 100%;
+            padding: 0.8rem 0.95rem;
+            border: 2px solid var(--s700);
+            border-radius: 14px;
+            background: var(--s900);
+            color: #fff;
+            font-size: 1rem;
+            line-height: 1.45;
+            resize: none;
+        }
+        .modal-card textarea:focus { outline: none; border-color: var(--emerald); }
+        .counter { margin: 0.3rem 0 0.9rem; text-align: right; color: var(--s400); font-size: 0.75rem; }
+
+        .audience { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.1rem; }
+        .audience label {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.7rem 0.9rem;
+            border: 2px solid var(--s700);
+            border-radius: 14px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .audience label:has(input:checked) { border-color: var(--emerald); background: rgba(16, 185, 129, 0.12); }
+        .audience input { width: 18px; height: 18px; accent-color: var(--emerald); }
+        .audience small { display: block; color: var(--s400); font-weight: 500; }
+
+        .modal-actions { display: flex; gap: 0.6rem; }
+        .modal-actions button {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .m-cancel { background: var(--s700); color: var(--s200); }
+        .m-send { background: linear-gradient(90deg, var(--emerald), var(--teal)); color: #04211a; }
+        .m-send:disabled { opacity: 0.6; cursor: wait; }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 1.5rem;
+            z-index: 100;
+            max-width: calc(100% - 2rem);
+            padding: 0.8rem 1.2rem;
+            border-radius: 14px;
+            background: #fff;
+            color: #0f172a;
+            font-weight: 700;
+            box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.6);
+            transform: translate(-50%, 140%);
+            transition: transform 0.3s ease;
+        }
+        .toast.show { transform: translate(-50%, 0); }
+
+        /* ---------- Phones ---------- */
+        @media (max-width: 768px) {
+            .panel { width: 100%; border-right: none; }
+            .thread { display: none; }
+            .app.show-thread .panel { display: none; }
+            .app.show-thread .thread { display: flex; }
+            .mobile-back { display: block; }
+            .bubble { max-width: 85%; }
+            .search input, .composer input, .modal-card textarea { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app" id="app">
+
+        <!-- Left: people and announcements -->
+        <aside class="panel">
+            <div class="panel-top">
+                <a class="back" href="dashboard.html">&larr; Dashboard</a>
+                <button type="button" class="link-btn" id="logout">Logout</button>
+            </div>
+            <h1>Messages</h1>
+            <div class="conn" id="conn"><i></i><span>Connecting...</span></div>
+
+            <button type="button" class="broadcast-btn" id="open-broadcast">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8v18L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                Send an announcement
+                <span class="pill" id="online-count">0 online</span>
+            </button>
+
+            <div class="search"><input type="text" id="search" placeholder="Search users..." autocomplete="off"></div>
+            <div class="filters" id="filters">
+                <button type="button" class="active" data-f="all">All</button>
+                <button type="button" data-f="online">Online</button>
+            </div>
+
+            <div class="user-list" id="user-list"></div>
+        </aside>
+
+        <!-- Right: conversation -->
+        <main class="thread">
+            <div class="mobile-back"><button type="button" id="back-list">&larr; Users</button></div>
+
+            <div class="thread-header" id="thread-header">
+                <span class="t-hint">Select a user to start a conversation</span>
+            </div>
+
+            <div class="messages" id="messages">
+                <div class="empty-note">Pick someone from the list, or send an announcement to everyone who is online.</div>
+            </div>
+
+            <div class="composer" id="composer" hidden>
+                <input type="text" id="msg-input" placeholder="Write a message..." maxlength="2000" autocomplete="off">
+                <button type="button" id="send">Send</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Announcement dialog -->
+    <div class="modal" id="broadcast-modal">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="bc-title">
+            <h2 id="bc-title">Send an announcement</h2>
+            <p class="modal-sub">Each person receives it as a normal message from you, and can reply to it.</p>
+
+            <textarea id="bc-text" rows="4" maxlength="1000" placeholder="Write your announcement..."></textarea>
+            <div class="counter"><span id="bc-count">0</span>/1000</div>
+
+            <div class="audience">
+                <label><input type="radio" name="audience" value="online" checked>
+                    <span>Online users now <small id="aud-online">0 people</small></span>
+                </label>
+                <label><input type="radio" name="audience" value="all">
+                    <span>Everyone <small id="aud-all">0 people</small></span>
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="m-cancel" id="bc-cancel">Cancel</button>
+                <button type="button" class="m-send" id="bc-send">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <!-- config.js defines API_URL and WS_URL -->
+    <script src="js/config.js"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        const $ = (id) => document.getElementById(id);
+        const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ESC[c]);
+
+        // ---------- Admin only ----------
+        const token = localStorage.getItem('token');
+        let me = null;
+        try { me = JSON.parse(localStorage.getItem('user') || 'null'); } catch (e) { /* ignore */ }
+
+        if (!token || !me || !me.is_admin || typeof API_URL === 'undefined') {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        // ---------- State ----------
+        let users = [];
+        let online = new Set();
+        let avatarVersions = {};
+        let unread = {};
+        let selectedId = null;
+        let filter = 'all';
+        let ws = null;
+        let attempts = 0;
+
+        // ---------- Helpers ----------
+        const COLORS = [['#10b981', '#14b8a6'], ['#06b6d4', '#3b82f6'], ['#8b5cf6', '#ec4899'],
+                        ['#f59e0b', '#ef4444'], ['#22d3ee', '#6366f1'], ['#84cc16', '#10b981']];
+
+        function grad(name) {
+            let h = 0;
+            const s = String(name || '');
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+            const c = COLORS[h % COLORS.length];
+            return `linear-gradient(135deg, ${c[0]}, ${c[1]})`;
+        }
+
+        function avatar(id, name, size) {
+            const v = avatarVersions[String(id)];
+            const img = v ? `<img src="${API_URL}/api/profile/avatar/${Number(id)}?v=${esc(v)}" alt="" onerror="this.remove()">` : '';
+            return `<span class="av ${size || ''}" style="background:${grad(name)}"><b>${esc((name || '?').charAt(0).toUpperCase())}</b>${img}</span>`;
+        }
+
+        function fmtTime(ts) {
+            if (!ts) return '';
+            const hasZone = /[zZ]$|[+-]\d\d:?\d\d$/.test(ts);
+            const d = new Date(hasZone ? ts : ts + 'Z');
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        let toastTimer;
+        function toast(text) {
+            const el = $('toast');
+            el.textContent = text;
+            el.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+        }
+
+        function logout() {
+            ['token', 'user', 'admin_token', 'admin_user'].forEach((k) => localStorage.removeItem(k));
+            window.location.href = 'index.html?logout=1';
+        }
+
+        // Returns { ok, status, data }, or null if the server could not be reached
+        async function api(method, path, body) {
+            try {
+                const res = await fetch(API_URL + path, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: body ? JSON.stringify(body) : undefined
+                });
+                if (res.status === 401) { logout(); return null; }
+                let data = null;
+                try { data = await res.json(); } catch (e) { /* no body */ }
+                return { ok: res.ok, status: res.status, data: data };
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function detailOf(res, fallback) {
+            if (res && res.data && typeof res.data.detail === 'string') return res.data.detail;
+            return fallback;
+        }
+
+        // ---------- People list ----------
+        const othersOnline = () => users.filter((u) => online.has(u.id));
+
+        function renderList() {
+            const q = $('search').value.trim().toLowerCase();
+            const list = users
+                .filter((u) => u.username.toLowerCase().includes(q) && (filter === 'all' || online.has(u.id)))
+                .sort((a, b) =>
+                    (unread[b.id] || 0) - (unread[a.id] || 0) ||
+                    (online.has(b.id) - online.has(a.id)) ||
+                    a.username.localeCompare(b.username));
+
+            $('user-list').innerHTML = list.length
+                ? list.map((u) => `
+                    <div class="u-row ${u.id === selectedId ? 'active' : ''}" data-id="${u.id}">
+                        ${avatar(u.id, u.username)}
+                        <div class="u-info">
+                            <div class="u-name">${esc(u.username)}</div>
+                            <div class="u-sub ${online.has(u.id) ? 'on' : ''}">${online.has(u.id) ? 'Online' : 'Offline'}</div>
+                        </div>
+                        ${unread[u.id] ? `<span class="badge">${unread[u.id]}</span>` : ''}
+                    </div>`).join('')
+                : '<div class="empty-note">No users found</div>';
+
+            $('online-count').textContent = othersOnline().length + ' online';
+        }
+
+        async function loadUsers() {
+            const [u, o, a] = await Promise.all([
+                api('GET', '/api/users/?limit=500'),
+                api('GET', '/api/users/online'),
+                api('GET', '/api/profile/avatars')
+            ]);
+            if (u && u.ok) users = u.data.filter((x) => x.id !== me.id && x.is_active !== false);
+            if (o && o.ok) online = new Set(o.data.online_users);
+            if (a && a.ok) avatarVersions = a.data.avatars || {};
+            renderList();
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const el = $('t-status');
+            if (!el || selectedId === null) return;
+            const on = online.has(selectedId);
+            el.textContent = on ? 'Online' : 'Offline';
+            el.className = 'u-sub' + (on ? ' on' : '');
+        }
+
+        // ---------- Conversation ----------
+        function scrollBottom() {
+            const box = $('messages');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function addMessage(m) {
+            const box = $('messages');
+            if (m.id && box.querySelector(`[data-id="${m.id}"]`)) return;
+            const empty = $('no-msgs');
+            if (empty) empty.remove();
+
+            const mine = m.sender_id === me.id;
+            const div = document.createElement('div');
+            div.className = 'bubble ' + (mine ? 'sent' : 'recv');
+            if (m.id) div.dataset.id = m.id;
+
+            const quote = m.reply_to
+                ? `<div class="quote"><b>${esc(m.reply_to.sender_id === me.id ? 'You' : m.reply_to.sender_username)}</b><span>${esc(m.reply_to.content)}</span></div>`
+                : '';
+            div.innerHTML = `${quote}<div>${esc(m.content)}</div><div class="b-time">${esc(fmtTime(m.timestamp))}</div>`;
+            box.appendChild(div);
+            scrollBottom();
+        }
+
+        async function selectUser(id) {
+            const u = users.find((x) => x.id === id);
+            if (!u) return;
+
+            selectedId = id;
+            unread[id] = 0;
+            renderList();
+
+            const on = online.has(id);
+            $('thread-header').innerHTML = `${avatar(u.id, u.username, 'lg')}
+                <div><div class="t-name">${esc(u.username)}</div>
+                <div class="u-sub ${on ? 'on' : ''}" id="t-status">${on ? 'Online' : 'Offline'}</div></div>`;
+            $('composer').hidden = false;
+            $('app').classList.add('show-thread');
+
+            const box = $('messages');
+            box.innerHTML = '<div class="empty-note">Loading...</div>';
+
+            const res = await api('GET', `/api/chat/history/${id}?limit=100`);
+            if (selectedId !== id) return;
+
+            if (!res || !res.ok) {
+                box.innerHTML = '<div class="empty-note">Could not load the conversation</div>';
+                return;
+            }
+            box.innerHTML = '';
+            if (!res.data.length) {
+                box.innerHTML = '<div class="empty-note" id="no-msgs">No messages yet. Say hello!</div>';
+            }
+            res.data.forEach(addMessage);
+            scrollBottom();
+            $('msg-input').focus();
+        }
+
+        function sendMessage() {
+            const input = $('msg-input');
+            const text = input.value.trim();
+            if (!text || selectedId === null) return;
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                toast('Not connected yet. Try again in a moment.');
+                return;
+            }
+            ws.send(JSON.stringify({ type: 'private', receiver_id: selectedId, content: text }));
+            input.value = '';
+        }
+
+        // ---------- Live connection ----------
+        function setConn(live) {
+            $('conn').classList.toggle('live', live);
+            $('conn').querySelector('span').textContent = live ? 'Live' : 'Reconnecting...';
+        }
+
+        function connect() {
+            ws = new WebSocket(`${WS_URL}/ws/${token}`);
+
+            ws.onopen = () => { attempts = 0; setConn(true); };
+
+            ws.onmessage = (e) => {
+                let d;
+                try { d = JSON.parse(e.data); } catch (err) { return; }
+                onSocket(d);
+            };
+
+            ws.onclose = () => {
+                setConn(false);
+                if (!localStorage.getItem('token')) return;
+                if (attempts >= 8) { toast('Connection lost. Please refresh the page.'); return; }
+                attempts++;
+                setTimeout(connect, 3000 * attempts);   // the free server can take a while to wake up
+            };
+        }
+
+        function onSocket(d) {
+            if (d.type === 'user_status') {
+                if (d.status === 'online') online.add(d.user_id); else online.delete(d.user_id);
+                if (!users.some((u) => u.id === d.user_id) && d.user_id !== me.id) loadUsers();
+                renderList();
+                if (d.user_id === selectedId) updateStatus();
+                return;
+            }
+
+            if (d.type === 'message') {
+                const otherId = d.sender_id === me.id ? d.receiver_id : d.sender_id;
+                if (otherId === selectedId) {
+                    addMessage(d);
+                } else if (d.sender_id !== me.id) {
+                    unread[d.sender_id] = (unread[d.sender_id] || 0) + 1;
+                    toast('New message from ' + d.sender_username);
+                    if (!users.some((u) => u.id === d.sender_id)) loadUsers(); else renderList();
+                }
+            }
+        }
+
+        // ---------- Announcements ----------
+        function openBroadcast() {
+            $('bc-text').value = '';
+            $('bc-count').textContent = '0';
+            const n = othersOnline().length;
+            $('aud-online').textContent = n + (n === 1 ? ' person' : ' people');
+            $('aud-all').textContent = users.length + (users.length === 1 ? ' person' : ' people');
+            document.querySelector('input[name="audience"][value="online"]').checked = true;
+            $('broadcast-modal').classList.add('open');
+            $('bc-text').focus();
+        }
+
+        function closeBroadcast() {
+            $('broadcast-modal').classList.remove('open');
+        }
+
+        async function sendBroadcast() {
+            const content = $('bc-text').value.trim();
+            const audience = document.querySelector('input[name="audience"]:checked').value;
+            const count = audience === 'online' ? othersOnline().length : users.length;
+
+            if (!content) { toast('Write a message first'); return; }
+            if (count === 0) { toast(audience === 'online' ? 'Nobody is online right now' : 'There are no users yet'); return; }
+            if (!confirm(`Send this message to ${count} ${count === 1 ? 'person' : 'people'}?`)) return;
+
+            const btn = $('bc-send');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            const res = await api('POST', '/api/admin-messages/broadcast', { content: content, audience: audience });
+
+            btn.disabled = false;
+            btn.textContent = 'Send';
+
+            if (res && res.ok) {
+                closeBroadcast();
+                const sent = res.data.sent;
+                toast(`Announcement sent to ${sent} ${sent === 1 ? 'person' : 'people'}`);
+                if (selectedId !== null) selectUser(selectedId);   // refresh the open conversation
+            } else if (res) {
+                toast(detailOf(res, 'Could not send the announcement'));
+            } else {
+                toast('Cannot reach the server. Please try again.');
+            }
+        }
+
+        // ---------- Wiring ----------
+        $('logout').addEventListener('click', logout);
+        $('open-broadcast').addEventListener('click', openBroadcast);
+        $('bc-cancel').addEventListener('click', closeBroadcast);
+        $('bc-send').addEventListener('click', sendBroadcast);
+        $('bc-text').addEventListener('input', () => { $('bc-count').textContent = $('bc-text').value.length; });
+        $('broadcast-modal').addEventListener('click', (e) => { if (e.target === $('broadcast-modal')) closeBroadcast(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeBroadcast(); });
+
+        $('search').addEventListener('input', renderList);
+        $('filters').addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            filter = btn.dataset.f;
+            $('filters').querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
+            renderList();
+        });
+
+        $('user-list').addEventListener('click', (e) => {
+            const row = e.target.closest('.u-row');
+            if (row) selectUser(Number(row.dataset.id));
+        });
+
+        $('send').addEventListener('click', sendMessage);
+        $('msg-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendMessage(); }
+        });
+        $('back-list').addEventListener('click', () => $('app').classList.remove('show-thread'));
+
+        loadUsers();
+        connect();
+        setInterval(loadUsers, 15000);
+    })();
+    </script>
+</body>
+</html>

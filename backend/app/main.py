@@ -11,7 +11,7 @@ from app.database import engine, Base, SessionLocal
 from app import auth, crud, models
 from app.websocket_manager import manager
 from app import settings_store
-from app.routers import auth as auth_router, users, messages, admin, extras, groups
+from app.routers import auth as auth_router, users, messages, admin, extras, groups, admin_messages
 from app.routers.extras import serialize_message
 from app.routers.groups import serialize_group_message, get_membership, member_ids_of
 
@@ -39,6 +39,7 @@ app.include_router(messages.router)
 app.include_router(admin.router)
 app.include_router(extras.router)
 app.include_router(groups.router)
+app.include_router(admin_messages.router)
 
 # Call setup messages that are relayed between users
 CALL_TYPES = {
