@@ -167,3 +167,74 @@ def change_password(
     admin.password_hash = auth.get_password_hash(body.new_password)
     db.commit()
     return {"message": "Password changed"}
+
+
+# ---------- AI assistant key (managed from the admin panel) ----------
+import os
+from pydantic import BaseModel
+from app import secret_store
+
+AI_KEY_NAME = "anthropic_api_key"
+
+
+class AiKeyUpdate(BaseModel):
+    api_key: str
+
+
+def _env_ai_key() -> str:
+    return os.getenv("ANTHROPIC_API_KEY", "").strip().strip(chr(34) + chr(39)).strip()
+
+
+def _ai_key_status() -> dict:
+    env_key = _env_ai_key()
+    saved = secret_store.get(AI_KEY_NAME)
+    key = env_key or saved
+    return {
+        "configured": bool(key),
+        "source": "render" if env_key else ("admin" if saved else None),
+        "last4": key[-4:] if key else None,
+        "has_saved": bool(saved),
+    }
+
+
+async def _test_anthropic_key(key: str) -> str:
+    """One tiny request, to tell the admin straight away whether the key works."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": os.getenv("AI_MODEL", "claude-haiku-4-5-20251001"), "max_tokens": 1,
+                      "messages": [{"role": "user", "content": "hi"}]},
+            )
+    except Exception:
+        return "unreachable"
+    if r.status_code == 200:
+        return "ok"
+    if r.status_code in (401, 403):
+        return "rejected"
+    if r.status_code == 429:
+        return "rate_limited"
+    return f"error_{r.status_code}"
+
+
+@router.get("/ai-key")
+def ai_key_status(admin = Depends(auth.get_current_admin)):
+    return _ai_key_status()
+
+
+@router.put("/ai-key")
+async def set_ai_key(body: AiKeyUpdate, admin = Depends(auth.get_current_admin)):
+    key = (body.api_key or "").strip().strip(chr(34) + chr(39)).strip()
+    if not key.startswith("sk-ant-") or not (40 <= len(key) <= 400):
+        raise HTTPException(status_code=400, detail="That does not look like an Anthropic API key. It should start with sk-ant-")
+    secret_store.save(AI_KEY_NAME, key)
+    result = await _test_anthropic_key(key)
+    return {"saved": True, "test": result, "last4": key[-4:]}
+
+
+@router.delete("/ai-key")
+def remove_ai_key(admin = Depends(auth.get_current_admin)):
+    secret_store.remove(AI_KEY_NAME)
+    return {"removed": True}

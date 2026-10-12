@@ -61,6 +61,7 @@ function showSection(sectionName) {
     if (sectionName === 'dashboard') loadStats();
     if (sectionName === 'users') loadUsers();
     if (sectionName === 'messages') loadMessages();
+    if (sectionName === 'ai') loadAiKey();
 }
 
 // Load Dashboard Stats
@@ -184,4 +185,60 @@ function logout() {
 // Load initial data if on dashboard
 if (document.getElementById('dashboard-section')) {
     loadStats();
+}
+
+
+// ---------- AI assistant key ----------
+
+function setAiMsg(text, ok) {
+    const el = document.getElementById('ai-msg');
+    el.textContent = text;
+    el.className = 'ai-msg ' + (ok ? 'ok' : 'err');
+}
+
+async function loadAiKey() {
+    const box = document.getElementById('ai-status');
+    try {
+        const s = await apiRequest('/api/admin/ai-key');
+        if (s.configured) {
+            const from = s.source === 'render' ? 'set in Render' : 'saved from this panel';
+            box.innerHTML = '<span class="ai-dot on"></span>Assistant is on (key ending in ' + esc(s.last4) + ', ' + from + ')';
+        } else {
+            box.innerHTML = '<span class="ai-dot"></span>Assistant is off. Paste a key below to turn it on.';
+        }
+        document.getElementById('ai-remove').style.display = s.has_saved ? '' : 'none';
+    } catch (e) {
+        box.textContent = 'Could not load the AI settings.';
+    }
+}
+
+async function saveAiKey() {
+    const input = document.getElementById('ai-key-input');
+    const key = input.value.trim();
+    if (!key) { setAiMsg('Paste your API key first.', false); return; }
+
+    setAiMsg('Saving and testing...', true);
+    try {
+        const r = await apiRequest('/api/admin/ai-key', { method: 'PUT', body: JSON.stringify({ api_key: key }) });
+        input.value = '';
+        await loadAiKey();
+        if (r.test === 'ok') setAiMsg('Saved. The key works, so the assistant is on.', true);
+        else if (r.test === 'rejected') setAiMsg('Saved, but Anthropic rejected this key. Check that it is correct and active.', false);
+        else if (r.test === 'rate_limited') setAiMsg('Saved. Anthropic is limiting requests right now, so try the assistant again shortly.', true);
+        else if (r.test === 'unreachable') setAiMsg('Saved, but the server could not reach Anthropic to test it.', false);
+        else setAiMsg('Saved, but the test returned an error (' + String(r.test).replace('error_', '') + '). Check your Anthropic billing and credits.', false);
+    } catch (e) {
+        setAiMsg((e.message || '').replace(/^HTTP \d+\s*/, '') || 'Could not save the key.', false);
+    }
+}
+
+async function removeAiKey() {
+    if (!confirm('Remove the saved key? The assistant will turn off unless a key is set in Render.')) return;
+    try {
+        await apiRequest('/api/admin/ai-key', { method: 'DELETE' });
+        await loadAiKey();
+        setAiMsg('Saved key removed.', true);
+    } catch (e) {
+        setAiMsg('Could not remove the key.', false);
+    }
 }

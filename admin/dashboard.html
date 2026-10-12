@@ -91,6 +91,19 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
     .stat:nth-child(2) { border-right: 0; }
     .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
 }
+
+.ai-panel { padding: 24px; max-width: 640px; }
+.ai-status { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 600; color: #fff; }
+.ai-dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; flex-shrink: 0; }
+.ai-dot.on { background: var(--emerald, #10b981); }
+.ai-label { display: block; margin-bottom: 6px; font-size: .85rem; font-weight: 600; color: var(--s400, #94a3b8); }
+.ai-input { width: 100%; font: inherit; padding: 10px 14px; border: 2px solid var(--s700, #1e2b42); border-radius: 12px; background: var(--s900, #0b1220); color: #fff; }
+.ai-input:focus { outline: none; border-color: var(--emerald, #10b981); box-shadow: 0 0 0 4px rgba(16,185,129,.18); }
+.ai-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+.ai-msg { font-size: .88rem; }
+.ai-msg.ok { color: var(--emerald, #10b981); }
+.ai-msg.err { color: var(--danger, #f87171); }
+.ai-note { margin: 18px 0 0; font-size: .85rem; color: var(--s400, #94a3b8); }
 </style>
 </head>
 <body>
@@ -108,6 +121,7 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
         <button type="button" class="nav-link active" onclick="showSection('dashboard')">Overview</button>
         <button type="button" class="nav-link" onclick="showSection('users')">Users</button>
         <button type="button" class="nav-link" onclick="showSection('messages')">Messages</button>
+        <button type="button" class="nav-link" onclick="showSection('ai')">AI Assistant</button>
     </nav>
     <button type="button" class="nav-link logout" onclick="logout()">Log out</button>
 </aside>
@@ -150,6 +164,22 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
                     <tbody></tbody>
                 </table>
             </div>
+        </div>
+    </section>
+
+    <section id="ai-section" class="section hidden">
+        <h2>AI Assistant</h2>
+        <p class="subtitle">Paste your Anthropic API key to turn on the in-chat assistant.</p>
+        <div class="panel ai-panel">
+            <div class="ai-status" id="ai-status">Checking...</div>
+            <label class="ai-label" for="ai-key-input">API key</label>
+            <input type="password" id="ai-key-input" class="ai-input" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+            <div class="ai-actions">
+                <button type="button" class="btn btn-primary" onclick="saveAiKey()">Save and test</button>
+                <button type="button" class="btn btn-danger" id="ai-remove" onclick="removeAiKey()" style="display:none">Remove saved key</button>
+                <span id="ai-msg" class="ai-msg" role="status"></span>
+            </div>
+            <p class="ai-note">The key is stored on your server and is never shown again, only its last 4 characters. If ANTHROPIC_API_KEY is also set in Render, that one is used instead.</p>
         </div>
     </section>
 </main>

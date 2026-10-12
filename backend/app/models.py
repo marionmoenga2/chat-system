@@ -84,3 +84,11 @@ class AppSetting(Base):
     __tablename__ = "app_settings"
     key = Column(String(50), primary_key=True)
     value = Column(String(200), nullable=False)
+
+
+# ---------- Server-side secrets (set from the admin panel) ----------
+
+class AppSecret(Base):
+    __tablename__ = "app_secrets"
+    key = Column(String(50), primary_key=True)
+    value = Column(String(500), nullable=False)

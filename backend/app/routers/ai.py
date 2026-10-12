@@ -11,7 +11,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app import auth
+from app import auth, secret_store
 
 router = APIRouter(prefix="/api/ai", tags=["AI assistant"])
 
@@ -55,7 +55,9 @@ class AskRequest(BaseModel):
 
 
 def get_key() -> str:
-    return os.getenv("ANTHROPIC_API_KEY", "").strip().strip(chr(34) + chr(39)).strip()
+    """The Render environment variable first, then the key saved from the admin panel."""
+    env = os.getenv("ANTHROPIC_API_KEY", "").strip().strip(chr(34) + chr(39)).strip()
+    return env or secret_store.get("anthropic_api_key")
 
 
 def check_rate(user_id: int):
