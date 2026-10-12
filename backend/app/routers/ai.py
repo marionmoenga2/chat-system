@@ -55,7 +55,7 @@ class AskRequest(BaseModel):
 
 
 def get_key() -> str:
-    return os.getenv("ANTHROPIC_API_KEY", "").strip()
+    return os.getenv("ANTHROPIC_API_KEY", "").strip().strip(chr(34) + chr(39)).strip()
 
 
 def check_rate(user_id: int):
@@ -145,3 +145,29 @@ async def ask(payload: AskRequest, current_user=Depends(auth.get_current_user)):
         answer = "I could not come up with an answer. Please try asking in a different way."
 
     return {"answer": answer}
+
+@router.get("/diagnose")
+def ai_diagnose(current_user=Depends(auth.get_current_user)):
+    """Shows what the server can see about the AI settings. Never shows a secret value."""
+    raw = os.getenv("ANTHROPIC_API_KEY", "")
+    key = get_key()
+
+    related = []       # names of similar settings (names only, never values)
+    secret_in_name = 0
+    for name in os.environ:
+        if name.startswith("sk-") or len(name) > 60:
+            secret_in_name += 1   # a secret was typed into the NAME box
+        elif name != "ANTHROPIC_API_KEY" and ("ANTHROPIC" in name.upper() or "CLAUDE" in name.upper()):
+            related.append(name)
+
+    return {
+        "enabled": bool(key),
+        "key_variable_found": "ANTHROPIC_API_KEY" in os.environ,
+        "key_has_value": bool(raw.strip()),
+        "key_length": len(key),
+        "key_starts_with_sk_ant": key.startswith("sk-ant-"),
+        "had_quotes_or_spaces": raw != key,
+        "secret_typed_in_name_box": secret_in_name > 0,
+        "similar_variable_names": related,
+        "model": os.getenv("AI_MODEL", DEFAULT_MODEL),
+    }
