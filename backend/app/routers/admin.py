@@ -287,3 +287,48 @@ async def set_gemini_key(body: AiKeyUpdate, admin = Depends(auth.get_current_adm
 def remove_gemini_key(admin = Depends(auth.get_current_admin)):
     secret_store.remove(GEMINI_KEY_NAME)
     return {"removed": True}
+
+
+# ---------- Groq key (managed from the admin panel) ----------
+from app import groq_client
+
+GROQ_KEY_NAME = "groq_api_key"
+
+
+def _groq_status() -> dict:
+    env_key = _clean_key(os.getenv("GROQ_API_KEY", ""))
+    saved = secret_store.get(GROQ_KEY_NAME)
+    key = env_key or saved
+    return {
+        "configured": bool(key),
+        "source": "render" if env_key else ("admin" if saved else None),
+        "last4": key[-4:] if key else None,
+        "has_saved": bool(saved),
+    }
+
+
+@router.get("/groq-key")
+def groq_key_status(admin = Depends(auth.get_current_admin)):
+    return _groq_status()
+
+
+@router.put("/groq-key")
+async def set_groq_key(body: AiKeyUpdate, admin = Depends(auth.get_current_admin)):
+    key = _clean_key(body.api_key)
+    if not key.startswith("gsk_") or not (20 <= len(key) <= 200) or any(ch.isspace() for ch in key):
+        raise HTTPException(status_code=400, detail="That does not look like a Groq API key. It starts with gsk_")
+    try:
+        await groq_client.generate(key, "Reply with one short word.", [{"role": "user", "content": "Say hi"}], max_tokens=20)
+        result = "ok"
+    except groq_client.GroqError as exc:
+        result = exc.code
+    if result == "rejected":
+        raise HTTPException(status_code=400, detail="Groq rejected this key. Check that you copied the whole key from the Groq console.")
+    secret_store.save(GROQ_KEY_NAME, key)
+    return {"saved": True, "test": result, "last4": key[-4:]}
+
+
+@router.delete("/groq-key")
+def remove_groq_key(admin = Depends(auth.get_current_admin)):
+    secret_store.remove(GROQ_KEY_NAME)
+    return {"removed": True}

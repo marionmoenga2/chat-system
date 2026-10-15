@@ -171,8 +171,20 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
 
     <section id="ai-section" class="section hidden">
         <h2>AI Assistant</h2>
-        <p class="subtitle">Paste an API key to turn on the in-chat assistant. Google Gemini has a free tier.</p>
+        <p class="subtitle">Paste an API key to turn on ChatWave AI. Groq and Google Gemini both have free tiers.</p>
         <div class="panel ai-panel">
+            <div class="ai-title">Groq<span class="ai-tag">Free tier</span></div>
+            <div class="ai-status" id="groq-status">Checking...</div>
+            <label class="ai-label" for="groq-key-input">Groq API key</label>
+            <input type="password" id="groq-key-input" class="ai-input" placeholder="gsk_..." autocomplete="off" spellcheck="false">
+            <div class="ai-actions">
+                <button type="button" class="btn btn-primary" onclick="saveGroqKey()">Save and test</button>
+                <button type="button" class="btn btn-danger" id="groq-remove" onclick="removeGroqKey()" style="display:none">Remove saved key</button>
+                <span id="groq-msg" class="ai-msg" role="status"></span>
+            </div>
+            <p class="ai-note">Get a free key at console.groq.com (API Keys). It is stored on your server and only its last 4 characters are shown again. If more than one key is set, ChatWave AI uses Groq first, then Gemini, then Anthropic.</p>
+        </div>
+        <div class="panel ai-panel" style="margin-top:16px">
             <div class="ai-title">Google Gemini<span class="ai-tag">Free tier</span></div>
             <div class="ai-status" id="gem-status">Checking...</div>
             <label class="ai-label" for="gem-key-input">Gemini API key</label>

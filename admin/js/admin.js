@@ -61,7 +61,7 @@ function showSection(sectionName) {
     if (sectionName === 'dashboard') loadStats();
     if (sectionName === 'users') loadUsers();
     if (sectionName === 'messages') loadMessages();
-    if (sectionName === 'ai') { loadAiKey(); loadGeminiKey(); }
+    if (sectionName === 'ai') { loadAiKey(); loadGeminiKey(); loadGroqKey(); }
 }
 
 // Load Dashboard Stats
@@ -296,5 +296,61 @@ async function removeGeminiKey() {
         setGemMsg('Saved key removed.', true);
     } catch (e) {
         setGemMsg('Could not remove the key.', false);
+    }
+}
+
+
+// ---------- Groq key ----------
+
+function setGroqMsg(text, ok) {
+    const el = document.getElementById('groq-msg');
+    el.textContent = text;
+    el.className = 'ai-msg ' + (ok ? 'ok' : 'err');
+}
+
+async function loadGroqKey() {
+    const box = document.getElementById('groq-status');
+    try {
+        const s = await apiRequest('/api/admin/groq-key');
+        if (s.configured) {
+            const from = s.source === 'render' ? 'set in Render' : 'saved from this panel';
+            box.innerHTML = '<span class="ai-dot on"></span>Groq is on (key ending in ' + esc(s.last4) + ', ' + from + ')';
+        } else {
+            box.innerHTML = '<span class="ai-dot"></span>Groq is off. Paste a key below to turn it on.';
+        }
+        document.getElementById('groq-remove').style.display = s.has_saved ? '' : 'none';
+    } catch (e) {
+        box.textContent = 'Could not load the Groq settings.';
+    }
+}
+
+async function saveGroqKey() {
+    const input = document.getElementById('groq-key-input');
+    const key = input.value.trim();
+    if (!key) { setGroqMsg('Paste your Groq API key first.', false); return; }
+
+    setGroqMsg('Saving and testing...', true);
+    try {
+        const r = await apiRequest('/api/admin/groq-key', { method: 'PUT', body: JSON.stringify({ api_key: key }) });
+        input.value = '';
+        await loadGroqKey();
+        if (r.test === 'ok') setGroqMsg('Saved. The key works, so ChatWave AI is on.', true);
+        else if (r.test === 'rate_limited') setGroqMsg('Saved, but Groq says this key has hit its free limit for now. Wait a few minutes, then try the assistant.', false);
+        else if (r.test === 'unreachable' || r.test === 'timeout') setGroqMsg('Saved, but the server could not reach Groq to test it.', false);
+        else if (r.test === 'no_model') setGroqMsg('Saved, but no suitable model was found for this key.', false);
+        else setGroqMsg('Saved, but the test returned an error (' + String(r.test).replace('error_', '') + ').', false);
+    } catch (e) {
+        setGroqMsg((e.message || '').replace(/^HTTP \d+\s*/, '') || 'Could not save the key.', false);
+    }
+}
+
+async function removeGroqKey() {
+    if (!confirm('Remove the saved Groq key? The assistant will switch to Gemini or Anthropic if a key is set there, otherwise it turns off.')) return;
+    try {
+        await apiRequest('/api/admin/groq-key', { method: 'DELETE' });
+        await loadGroqKey();
+        setGroqMsg('Saved key removed.', true);
+    } catch (e) {
+        setGroqMsg('Could not remove the key.', false);
     }
 }
