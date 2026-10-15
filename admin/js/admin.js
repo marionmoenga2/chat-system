@@ -61,7 +61,7 @@ function showSection(sectionName) {
     if (sectionName === 'dashboard') loadStats();
     if (sectionName === 'users') loadUsers();
     if (sectionName === 'messages') loadMessages();
-    if (sectionName === 'ai') loadAiKey();
+    if (sectionName === 'ai') { loadAiKey(); loadGeminiKey(); }
 }
 
 // Load Dashboard Stats
@@ -240,5 +240,61 @@ async function removeAiKey() {
         setAiMsg('Saved key removed.', true);
     } catch (e) {
         setAiMsg('Could not remove the key.', false);
+    }
+}
+
+
+// ---------- Gemini key ----------
+
+function setGemMsg(text, ok) {
+    const el = document.getElementById('gem-msg');
+    el.textContent = text;
+    el.className = 'ai-msg ' + (ok ? 'ok' : 'err');
+}
+
+async function loadGeminiKey() {
+    const box = document.getElementById('gem-status');
+    try {
+        const s = await apiRequest('/api/admin/gemini-key');
+        if (s.configured) {
+            const from = s.source === 'render' ? 'set in Render' : 'saved from this panel';
+            box.innerHTML = '<span class="ai-dot on"></span>Gemini is on (key ending in ' + esc(s.last4) + ', ' + from + ')';
+        } else {
+            box.innerHTML = '<span class="ai-dot"></span>Gemini is off. Paste a key below to turn it on.';
+        }
+        document.getElementById('gem-remove').style.display = s.has_saved ? '' : 'none';
+    } catch (e) {
+        box.textContent = 'Could not load the Gemini settings.';
+    }
+}
+
+async function saveGeminiKey() {
+    const input = document.getElementById('gem-key-input');
+    const key = input.value.trim();
+    if (!key) { setGemMsg('Paste your Gemini API key first.', false); return; }
+
+    setGemMsg('Saving and testing...', true);
+    try {
+        const r = await apiRequest('/api/admin/gemini-key', { method: 'PUT', body: JSON.stringify({ api_key: key }) });
+        input.value = '';
+        await loadGeminiKey();
+        if (r.test === 'ok') setGemMsg('Saved. The key works, so the assistant is on.', true);
+        else if (r.test === 'rate_limited') setGemMsg('Saved, but Google says this key has no free requests available right now. Wait a few minutes, then try the assistant.', false);
+        else if (r.test === 'unreachable' || r.test === 'timeout') setGemMsg('Saved, but the server could not reach Google to test it.', false);
+        else if (r.test === 'no_model') setGemMsg('Saved, but no suitable Gemini model was found for this key.', false);
+        else setGemMsg('Saved, but the test returned an error (' + String(r.test).replace('error_', '') + ').', false);
+    } catch (e) {
+        setGemMsg((e.message || '').replace(/^HTTP \d+\s*/, '') || 'Could not save the key.', false);
+    }
+}
+
+async function removeGeminiKey() {
+    if (!confirm('Remove the saved Gemini key? The assistant will switch to Anthropic if a key is set there, otherwise it turns off.')) return;
+    try {
+        await apiRequest('/api/admin/gemini-key', { method: 'DELETE' });
+        await loadGeminiKey();
+        setGemMsg('Saved key removed.', true);
+    } catch (e) {
+        setGemMsg('Could not remove the key.', false);
     }
 }

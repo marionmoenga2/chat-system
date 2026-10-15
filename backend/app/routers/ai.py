@@ -11,7 +11,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app import auth, secret_store
+from app import auth, secret_store, gemini_client
 
 router = APIRouter(prefix="/api/ai", tags=["AI assistant"])
 
@@ -60,6 +60,12 @@ def get_key() -> str:
     return env or secret_store.get("anthropic_api_key")
 
 
+def get_gemini_key() -> str:
+    """GEMINI_API_KEY from Render first, then the key saved from the admin panel."""
+    env = os.getenv("GEMINI_API_KEY", "").strip().strip(chr(34) + chr(39)).strip()
+    return env or secret_store.get("gemini_api_key")
+
+
 def check_rate(user_id: int):
     limit = int(os.getenv("AI_LIMIT_PER_10_MIN", "15"))
     now = time.time()
@@ -97,17 +103,31 @@ def clean_messages(turns: List[ChatTurn]) -> list:
 @router.get("/status")
 def ai_status(current_user=Depends(auth.get_current_user)):
     """The app uses this to decide whether to show the assistant."""
-    return {"enabled": bool(get_key())}
+    return {"enabled": bool(get_gemini_key() or get_key())}
 
 
 @router.post("/ask")
 async def ask(payload: AskRequest, current_user=Depends(auth.get_current_user)):
+    gemini_key = get_gemini_key()
     key = get_key()
-    if not key:
+    if not gemini_key and not key:
         raise HTTPException(status_code=503, detail="The AI assistant is not set up yet")
 
     messages = clean_messages(payload.messages)
     check_rate(current_user.id)
+
+    if gemini_key:
+        system = SYSTEM_PROMPT.replace("built on Claude, a model made by Anthropic", "powered by Google Gemini")
+        try:
+            answer = await gemini_client.generate(gemini_key, system, messages)
+        except gemini_client.GeminiError as exc:
+            print("Gemini request failed:", exc.code, exc.detail)
+            if exc.code == "rate_limited":
+                raise HTTPException(status_code=503, detail="The assistant is busy right now. Please try again in a moment.")
+            if exc.code == "timeout":
+                raise HTTPException(status_code=504, detail="The assistant took too long to answer. Please try again.")
+            raise HTTPException(status_code=502, detail="The assistant is not available right now")
+        return {"answer": answer or "I could not come up with an answer. Please try asking in a different way."}
 
     body = {
         "model": os.getenv("AI_MODEL", DEFAULT_MODEL),

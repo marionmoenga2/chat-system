@@ -104,6 +104,8 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
 .ai-msg.ok { color: var(--emerald, #10b981); }
 .ai-msg.err { color: var(--danger, #f87171); }
 .ai-note { margin: 18px 0 0; font-size: .85rem; color: var(--s400, #94a3b8); }
+.ai-title { font-weight: 700; color: #fff; margin-bottom: 12px; }
+.ai-tag { margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: rgba(16,185,129,.16); color: var(--emerald, #10b981); font-size: .72rem; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -169,8 +171,21 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
 
     <section id="ai-section" class="section hidden">
         <h2>AI Assistant</h2>
-        <p class="subtitle">Paste your Anthropic API key to turn on the in-chat assistant.</p>
+        <p class="subtitle">Paste an API key to turn on the in-chat assistant. Google Gemini has a free tier.</p>
         <div class="panel ai-panel">
+            <div class="ai-title">Google Gemini<span class="ai-tag">Free tier</span></div>
+            <div class="ai-status" id="gem-status">Checking...</div>
+            <label class="ai-label" for="gem-key-input">Gemini API key</label>
+            <input type="password" id="gem-key-input" class="ai-input" placeholder="Paste your Gemini API key" autocomplete="off" spellcheck="false">
+            <div class="ai-actions">
+                <button type="button" class="btn btn-primary" onclick="saveGeminiKey()">Save and test</button>
+                <button type="button" class="btn btn-danger" id="gem-remove" onclick="removeGeminiKey()" style="display:none">Remove saved key</button>
+                <span id="gem-msg" class="ai-msg" role="status"></span>
+            </div>
+            <p class="ai-note">Get a free key at aistudio.google.com (Get API key). It is stored on your server and only its last 4 characters are shown again. When a Gemini key is set, it is used instead of Anthropic.</p>
+        </div>
+        <div class="panel ai-panel" style="margin-top:16px">
+            <div class="ai-title">Anthropic Claude<span class="ai-tag">Paid</span></div>
             <div class="ai-status" id="ai-status">Checking...</div>
             <label class="ai-label" for="ai-key-input">API key</label>
             <input type="password" id="ai-key-input" class="ai-input" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">

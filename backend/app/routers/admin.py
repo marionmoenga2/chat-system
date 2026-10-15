@@ -238,3 +238,52 @@ async def set_ai_key(body: AiKeyUpdate, admin = Depends(auth.get_current_admin))
 def remove_ai_key(admin = Depends(auth.get_current_admin)):
     secret_store.remove(AI_KEY_NAME)
     return {"removed": True}
+
+
+# ---------- Gemini key (managed from the admin panel) ----------
+from app import gemini_client
+
+GEMINI_KEY_NAME = "gemini_api_key"
+
+
+def _clean_key(value) -> str:
+    return (value or "").strip().strip(chr(34) + chr(39)).strip()
+
+
+def _gemini_status() -> dict:
+    env_key = _clean_key(os.getenv("GEMINI_API_KEY", ""))
+    saved = secret_store.get(GEMINI_KEY_NAME)
+    key = env_key or saved
+    return {
+        "configured": bool(key),
+        "source": "render" if env_key else ("admin" if saved else None),
+        "last4": key[-4:] if key else None,
+        "has_saved": bool(saved),
+    }
+
+
+@router.get("/gemini-key")
+def gemini_key_status(admin = Depends(auth.get_current_admin)):
+    return _gemini_status()
+
+
+@router.put("/gemini-key")
+async def set_gemini_key(body: AiKeyUpdate, admin = Depends(auth.get_current_admin)):
+    key = _clean_key(body.api_key)
+    if not (20 <= len(key) <= 200) or any(ch.isspace() for ch in key):
+        raise HTTPException(status_code=400, detail="That does not look like a Gemini API key. Copy the whole key from Google AI Studio.")
+    try:
+        await gemini_client.generate(key, "Reply with one short word.", [{"role": "user", "content": "Say hi"}], max_tokens=200)
+        result = "ok"
+    except gemini_client.GeminiError as exc:
+        result = exc.code
+    if result == "rejected":
+        raise HTTPException(status_code=400, detail="Google rejected this key. Check that you copied the whole key from AI Studio.")
+    secret_store.save(GEMINI_KEY_NAME, key)
+    return {"saved": True, "test": result, "last4": key[-4:]}
+
+
+@router.delete("/gemini-key")
+def remove_gemini_key(admin = Depends(auth.get_current_admin)):
+    secret_store.remove(GEMINI_KEY_NAME)
+    return {"removed": True}
