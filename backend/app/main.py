@@ -249,3 +249,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
 @app.get("/")
 def read_root():
     return {"message": "Chat System API is running", "docs": "/docs"}
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health():
+    return {"status": "ok"}
