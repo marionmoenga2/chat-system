@@ -106,6 +106,10 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
 .ai-note { margin: 18px 0 0; font-size: .85rem; color: var(--s400, #94a3b8); }
 .ai-title { font-weight: 700; color: #fff; margin-bottom: 12px; }
 .ai-tag { margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: rgba(16,185,129,.16); color: var(--emerald, #10b981); font-size: .72rem; font-weight: 600; }
+.nav-badge { display: inline-block; margin-left: 8px; min-width: 20px; padding: 1px 7px; border-radius: 999px;
+    background: var(--danger); color: var(--s900); font-size: .72rem; font-weight: 800; text-align: center; }
+.pending-empty { margin: 0; padding: 32px; text-align: center; color: var(--s400); }
+.actions .btn + .btn { margin-left: 6px; }
 </style>
 </head>
 <body>
@@ -122,6 +126,7 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
     <nav class="nav">
         <button type="button" class="nav-link active" onclick="showSection('dashboard')">Overview</button>
         <button type="button" class="nav-link" onclick="showSection('users')">Users</button>
+        <button type="button" class="nav-link" onclick="showSection('pending')">Approvals<span class="nav-badge hidden" id="pending-badge">0</span></button>
         <button type="button" class="nav-link" onclick="showSection('messages')">Messages</button>
         <button type="button" class="nav-link" onclick="showSection('ai')">AI Assistant</button>
     </nav>
@@ -148,6 +153,18 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
                 <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Phone</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
                 <tbody></tbody>
             </table>
+        </div>
+    </section>
+
+    <section id="pending-section" class="section hidden">
+        <h2>Pending approvals</h2>
+        <p class="subtitle">New sign-ups can only use the chat after you approve them.</p>
+        <div class="panel table-wrap">
+            <table id="pending-table">
+                <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Phone</th><th>Signed up</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <p id="pending-empty" class="pending-empty hidden">No one is waiting for approval.</p>
         </div>
     </section>
 
@@ -213,6 +230,7 @@ tbody tr:hover { background: rgba(30,43,66,.6); }
 
 <script src="js/config.js"></script>
 <script src="js/admin.js"></script>
+<script src="js/pending.js"></script>
 
 
 <!-- messages-link:start -->

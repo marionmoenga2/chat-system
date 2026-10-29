@@ -7,7 +7,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from app.database import engine, Base, SessionLocal
+from app.database import engine, Base, SessionLocal, ensure_approval_column
 from app import auth, crud, models
 from app.websocket_manager import manager
 from app import settings_store
@@ -17,6 +17,7 @@ from app.routers.extras import serialize_message
 from app.routers.groups import serialize_group_message, get_membership, member_ids_of
 
 Base.metadata.create_all(bind=engine)
+ensure_approval_column()
 auth.SECRET_KEY = os.getenv("SECRET_KEY", "change-this-in-production")
 
 app = FastAPI(
@@ -160,7 +161,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
         user_id = int(payload.get("sub"))
         with SessionLocal() as db:
             user = crud.get_user_by_id(db, user_id)
-            if not user or not user.is_active:
+            if not user or not user.is_active or not (user.is_admin or user.is_approved):
                 await websocket.close(code=4001)
                 return
             username = user.username

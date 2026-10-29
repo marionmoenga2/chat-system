@@ -1,6 +1,7 @@
 """
 CRUD (Create, Read, Update, Delete) operations for the database.
 """
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from app.models import User, Message
 from app.auth import get_password_hash
@@ -17,7 +18,7 @@ def get_user_by_id(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
 def get_users(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(User).offset(skip).limit(limit).all()
+    return db.query(User).filter(or_(User.is_approved.is_(True), User.is_admin.is_(True))).offset(skip).limit(limit).all()
 
 def create_user(db: Session, username: str, email: str, password: str, phone: str = None):
     db_user = User(

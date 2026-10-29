@@ -51,7 +51,9 @@ async def broadcast(
             if online_ids else []
         )
     else:
-        rows = db.query(models.User.id).filter(models.User.is_active.is_(True)).all()
+        rows = db.query(models.User.id).filter(
+            models.User.is_active.is_(True), models.User.is_approved.is_(True)
+        ).all()
 
     recipients = [r[0] for r in rows if r[0] != admin_user.id][:MAX_RECIPIENTS]
 

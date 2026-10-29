@@ -161,8 +161,9 @@ if (registerFormEl) {
             const { ok, status, data } = await postJson('/api/auth/signup', { username, email, password, phone });
 
             if (ok) {
-                showError('Account created! Please log in.', 'success');
+                // (message is shown after the form switches)
                 toggleForms();
+                showError('Account created! An administrator must approve it before you can sign in. You will be able to log in once approved.', 'success');
             } else {
                 console.error('Registration rejected:', status, data);
                 showError(formatDetail(data && data.detail, `Registration failed (HTTP ${status})`));

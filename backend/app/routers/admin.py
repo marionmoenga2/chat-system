@@ -19,7 +19,7 @@ def admin_get_all_users(
     admin = Depends(auth.get_current_admin)
 ):
     """Get all users (Admin only)."""
-    return db.query(models.User).options(undefer(models.User.phone)).order_by(models.User.id).offset(skip).limit(limit).all()
+    return db.query(models.User).options(undefer(models.User.phone)).filter((models.User.is_approved.is_(True)) | (models.User.is_admin.is_(True))).order_by(models.User.id).offset(skip).limit(limit).all()
 
 @router.post("/users/{user_id}/ban")
 def ban_user(
@@ -99,13 +99,55 @@ def get_dashboard_stats(
     
     from app.websocket_manager import manager
     online_now = len(manager.get_online_users())
+    pending_users = db.query(models.User).filter(
+        models.User.is_approved.is_(False), models.User.is_admin.is_(False)
+    ).count()
     
     return {
         "total_users": total_users,
         "total_messages": total_messages,
         "active_users": active_users,
-        "online_now": online_now
+        "online_now": online_now,
+        "pending_users": pending_users
     }
+
+
+# ---------- Approve new sign-ups ----------
+
+def _pending_query(db):
+    return db.query(models.User).filter(
+        models.User.is_approved.is_(False), models.User.is_admin.is_(False)
+    )
+
+
+@router.get("/pending-users", response_model=List[schemas.AdminUserResponse])
+def pending_users(db: Session = Depends(get_db), admin = Depends(auth.get_current_admin)):
+    """New sign-ups waiting for approval."""
+    return _pending_query(db).options(undefer(models.User.phone)).order_by(models.User.id).all()
+
+
+@router.post("/users/{user_id}/approve")
+def approve_user(user_id: int, db: Session = Depends(get_db), admin = Depends(auth.get_current_admin)):
+    """Let a new user into the chat."""
+    user = crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_approved = True
+    db.commit()
+    return {"message": f"User {user.username} has been approved"}
+
+
+@router.post("/users/{user_id}/reject")
+def reject_user(user_id: int, db: Session = Depends(get_db), admin = Depends(auth.get_current_admin)):
+    """Decline a pending sign-up (the account is removed so they can register again)."""
+    user = crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.is_approved or user.is_admin:
+        raise HTTPException(status_code=400, detail="Only pending sign-ups can be rejected")
+    name = user.username
+    crud.delete_user(db, user_id)
+    return {"message": f"Sign-up from {name} has been rejected"}
 
 
 # ---------- Settings ----------

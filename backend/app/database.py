@@ -34,3 +34,18 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_approval_column():
+    """Add users.is_approved to an existing database (create_all only creates new tables).
+    Everyone who already has an account is marked approved."""
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    if "users" not in insp.get_table_names():
+        return
+    if "is_approved" in [c["name"] for c in insp.get_columns("users")]:
+        return
+    default = "1" if engine.url.get_backend_name() == "sqlite" else "TRUE"
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN is_approved BOOLEAN NOT NULL DEFAULT " + default))
+    print("Migration: added users.is_approved (existing users stay approved)")

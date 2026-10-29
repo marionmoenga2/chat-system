@@ -51,6 +51,12 @@ def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
             detail="Account has been banned"
         )
     
+    if not (user.is_admin or user.is_approved):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is waiting for admin approval. Please try again later."
+        )
+
     access_token = auth_utils.create_access_token(data={"sub": str(user.id)})
     return {
         "access_token": access_token,

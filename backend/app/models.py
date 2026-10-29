@@ -1,7 +1,7 @@
 """
 SQLAlchemy ORM Models defining the database schema.
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, UniqueConstraint, true
 from sqlalchemy.orm import relationship, deferred
 from datetime import datetime
 from app.database import Base
@@ -14,6 +14,8 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)  # For banning users
+    # New sign-ups wait for an admin; existing users are approved by the migration
+    is_approved = Column(Boolean, default=False, nullable=False, server_default=true())
     created_at = Column(DateTime, default=datetime.utcnow)
     # "deferred" columns are only loaded when asked for, so listing users stays fast.
     avatar = deferred(Column(Text, nullable=True))        # profile photo as a small data URL

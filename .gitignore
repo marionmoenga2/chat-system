@@ -8,3 +8,9 @@ __pycache__/
 .env
 venv/
 .venv/
+
+*.bak
+venv/
+__pycache__/
+*.pyc
+*.db
