@@ -107,6 +107,15 @@
 
         .footer { margin: 20px 0 0; font-size: 0.8rem; color: #9fb0c8; }
 
+        .terms-note { margin: 12px 0 0; font-size: 0.8rem; color: var(--muted); text-align: center; }
+        .terms-note a { color: var(--ink); font-weight: 600; }
+        .check { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 8px; font-size: 0.88rem; }
+        .check input { width: 18px; height: 18px; padding: 0; margin: 2px 0 0; flex-shrink: 0; accent-color: #0b1f3a; }
+        .check label { margin: 0; font-weight: 400; color: var(--text); }
+        .check a { color: var(--ink); font-weight: 600; }
+        .footer a { color: #cbd5e1; text-decoration: underline; text-underline-offset: 2px; }
+        .footer a:hover { color: #fff; }
+
         @media (max-width: 480px) {
             body { justify-content: flex-start; padding-top: 32px; }
             .card { padding: 24px 20px; }
@@ -143,6 +152,7 @@
                     </div>
                 </div>
                 <button type="submit" class="btn">Sign in</button>
+                <p class="terms-note">By signing in you agree to the <a href="terms.html">Terms and Conditions</a>.</p>
             </form>
             <p class="switch">New to ChatWave? <a href="#" onclick="toggleForms(); return false;">Create an account</a></p>
         </div>
@@ -175,6 +185,10 @@
                     </div>
                     <p class="help">At least 6 characters.</p>
                 </div>
+                <div class="check">
+                    <input type="checkbox" id="reg-terms" required>
+                    <label for="reg-terms">I have read and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms and Conditions</a>.</label>
+                </div>
                 <button type="submit" class="btn">Create account</button>
             </form>
             <p class="switch">Already have an account? <a href="#" onclick="toggleForms(); return false;">Sign in</a></p>
@@ -183,7 +197,7 @@
         <div id="error-message" class="error-message" role="alert"></div>
     </div>
 
-    <p class="footer">&copy; ChatWave</p>
+    <p class="footer">&copy; ChatWave &nbsp;|&nbsp; <a href="terms.html">Terms and Conditions</a></p>
 
     <!-- config.js must load first: it defines API_URL and WS_URL -->
     <script src="js/config.js"></script>
