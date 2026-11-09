@@ -39,6 +39,8 @@ def _purge_expired(db: Session):
     old = [r[0] for r in db.query(models.StatusPost.id).filter(models.StatusPost.created_at < cutoff).all()]
     if old:
         db.query(models.StatusView).filter(models.StatusView.status_id.in_(old)).delete(synchronize_session=False)
+        db.query(models.StatusLike).filter(models.StatusLike.status_id.in_(old)).delete(synchronize_session=False)
+        db.query(models.StatusComment).filter(models.StatusComment.status_id.in_(old)).delete(synchronize_session=False)
         db.query(models.StatusPost).filter(models.StatusPost.id.in_(old)).delete(synchronize_session=False)
         db.commit()
 
@@ -65,6 +67,23 @@ def feed(db: Session = Depends(get_db), me=Depends(auth.get_current_user)):
         .all()
     )
     seen = {r[0] for r in db.query(models.StatusView.status_id).filter(models.StatusView.viewer_id == me.id).all()}
+    all_ids = [p.id for p, _ in rows]
+    like_counts, comment_counts, my_likes = {}, {}, set()
+    if all_ids:
+        like_counts = dict(
+            db.query(models.StatusLike.status_id, func.count(models.StatusLike.id))
+            .filter(models.StatusLike.status_id.in_(all_ids))
+            .group_by(models.StatusLike.status_id).all()
+        )
+        comment_counts = dict(
+            db.query(models.StatusComment.status_id, func.count(models.StatusComment.id))
+            .filter(models.StatusComment.status_id.in_(all_ids))
+            .group_by(models.StatusComment.status_id).all()
+        )
+        my_likes = {
+            r[0] for r in db.query(models.StatusLike.status_id)
+            .filter(models.StatusLike.user_id == me.id, models.StatusLike.status_id.in_(all_ids)).all()
+        }
     my_ids = [p.id for p, _ in rows if p.user_id == me.id]
     view_counts = {}
     if my_ids:
@@ -83,6 +102,9 @@ def feed(db: Session = Depends(get_db), me=Depends(auth.get_current_user)):
             "id": post.id, "kind": post.kind, "text": post.text, "bg": post.bg,
             "created_at": _iso(post.created_at),
             "viewed": post.user_id == me.id or post.id in seen,
+            "likes": int(like_counts.get(post.id, 0)),
+            "comments": int(comment_counts.get(post.id, 0)),
+            "liked": post.id in my_likes,
         }
         if post.user_id == me.id:
             item["views"] = int(view_counts.get(post.id, 0))
@@ -165,6 +187,116 @@ def delete_status(status_id: int, db: Session = Depends(get_db), me=Depends(auth
     if post.user_id != me.id and not me.is_admin:
         raise HTTPException(status_code=403, detail="You can only delete your own status")
     db.query(models.StatusView).filter(models.StatusView.status_id == status_id).delete(synchronize_session=False)
+    db.query(models.StatusLike).filter(models.StatusLike.status_id == status_id).delete(synchronize_session=False)
+    db.query(models.StatusComment).filter(models.StatusComment.status_id == status_id).delete(synchronize_session=False)
     db.delete(post)
+    db.commit()
+    return {"deleted": True}
+
+
+# ---------- Likes and comments ----------
+
+MAX_COMMENT = 300
+MAX_COMMENTS_PER_STATUS = 300
+MAX_COMMENTS_PER_MINUTE = 10
+
+
+class CommentCreate(BaseModel):
+    text: str
+
+
+def _comment_json(c, username, post, me):
+    return {
+        "id": c.id, "user_id": c.user_id, "username": username, "text": c.text,
+        "created_at": _iso(c.created_at),
+        "can_delete": c.user_id == me.id or post.user_id == me.id or bool(me.is_admin),
+    }
+
+
+@router.post("/{status_id}/like")
+def toggle_like(status_id: int, db: Session = Depends(get_db), me=Depends(auth.get_current_user)):
+    _live_post(db, status_id)
+    existing = db.query(models.StatusLike).filter(
+        models.StatusLike.status_id == status_id, models.StatusLike.user_id == me.id
+    ).first()
+    if existing:
+        db.delete(existing)
+        db.commit()
+    else:
+        db.add(models.StatusLike(status_id=status_id, user_id=me.id))
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+    likes = db.query(func.count(models.StatusLike.id)).filter(models.StatusLike.status_id == status_id).scalar()
+    liked = db.query(models.StatusLike).filter(
+        models.StatusLike.status_id == status_id, models.StatusLike.user_id == me.id
+    ).first() is not None
+    return {"liked": liked, "likes": int(likes or 0)}
+
+
+@router.get("/{status_id}/engagement")
+def engagement(status_id: int, db: Session = Depends(get_db), me=Depends(auth.get_current_user)):
+    post = _live_post(db, status_id)
+    likes = db.query(func.count(models.StatusLike.id)).filter(models.StatusLike.status_id == status_id).scalar()
+    liked = db.query(models.StatusLike).filter(
+        models.StatusLike.status_id == status_id, models.StatusLike.user_id == me.id
+    ).first() is not None
+    rows = (
+        db.query(models.StatusComment, models.User.username)
+        .join(models.User, models.User.id == models.StatusComment.user_id)
+        .filter(models.StatusComment.status_id == status_id)
+        .order_by(models.StatusComment.created_at.asc())
+        .limit(MAX_COMMENTS_PER_STATUS)
+        .all()
+    )
+    result = {
+        "likes": int(likes or 0),
+        "liked": liked,
+        "comments": [_comment_json(c, name, post, me) for c, name in rows],
+    }
+    if post.user_id == me.id:
+        likers = (
+            db.query(models.User.id, models.User.username)
+            .join(models.StatusLike, models.StatusLike.user_id == models.User.id)
+            .filter(models.StatusLike.status_id == status_id)
+            .order_by(models.StatusLike.created_at.desc())
+            .all()
+        )
+        result["likers"] = [{"user_id": r[0], "username": r[1]} for r in likers]
+    return result
+
+
+@router.post("/{status_id}/comments")
+def add_comment(status_id: int, body: CommentCreate, db: Session = Depends(get_db), me=Depends(auth.get_current_user)):
+    post = _live_post(db, status_id)
+    text = (body.text or "").strip()[:MAX_COMMENT]
+    if not text:
+        raise HTTPException(status_code=400, detail="Write a comment first")
+    total = db.query(func.count(models.StatusComment.id)).filter(models.StatusComment.status_id == status_id).scalar()
+    if (total or 0) >= MAX_COMMENTS_PER_STATUS:
+        raise HTTPException(status_code=400, detail="This status has too many comments")
+    recent = db.query(func.count(models.StatusComment.id)).filter(
+        models.StatusComment.user_id == me.id,
+        models.StatusComment.created_at >= datetime.utcnow() - timedelta(minutes=1),
+    ).scalar()
+    if (recent or 0) >= MAX_COMMENTS_PER_MINUTE:
+        raise HTTPException(status_code=429, detail="You are commenting too fast. Please wait a moment.")
+    comment = models.StatusComment(status_id=status_id, user_id=me.id, text=text)
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return {"comment": _comment_json(comment, me.username, post, me)}
+
+
+@router.delete("/comments/{comment_id}")
+def delete_comment(comment_id: int, db: Session = Depends(get_db), me=Depends(auth.get_current_user)):
+    comment = db.query(models.StatusComment).filter(models.StatusComment.id == comment_id).first()
+    if not comment:
+        return {"deleted": True}
+    post = db.query(models.StatusPost).filter(models.StatusPost.id == comment.status_id).first()
+    if comment.user_id != me.id and not (post and post.user_id == me.id) and not me.is_admin:
+        raise HTTPException(status_code=403, detail="You cannot delete this comment")
+    db.delete(comment)
     db.commit()
     return {"deleted": True}

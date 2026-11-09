@@ -116,3 +116,21 @@ class StatusView(Base):
     status_id = Column(Integer, ForeignKey("status_posts.id"), nullable=False, index=True)
     viewer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     viewed_at = Column(DateTime, default=datetime.utcnow)
+
+
+class StatusLike(Base):
+    __tablename__ = "status_likes"
+    __table_args__ = (UniqueConstraint("status_id", "user_id", name="uq_status_like"),)
+    id = Column(Integer, primary_key=True, index=True)
+    status_id = Column(Integer, ForeignKey("status_posts.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class StatusComment(Base):
+    __tablename__ = "status_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    status_id = Column(Integer, ForeignKey("status_posts.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    text = Column(String(300), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

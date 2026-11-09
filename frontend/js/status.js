@@ -93,6 +93,11 @@
         .st-viewers { position: absolute; left: 0; right: 0; bottom: 0; z-index: 8; display: none; max-height: 60%; overflow-y: auto;
             background: #fff; color: #14213a; border-radius: 16px 16px 0 0; padding: 16px; }
         .st-viewers.open { display: block; }
+        .st-vfoot { flex-wrap: wrap; }
+        .st-vfoot .st-btn.liked { background: #e11d48; color: #fff; }
+        .st-cform { display: flex; gap: 8px; margin-top: 12px; position: sticky; bottom: 0; background: #fff; padding-top: 8px; }
+        .st-cform input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid #cdd6e4; border-radius: 10px; font: inherit; font-size: 1rem; }
+        .st-cform input:focus { outline: none; border-color: #1f4fd8; box-shadow: 0 0 0 3px rgba(31,79,216,.18); }
     `;
     document.head.appendChild(style);
 
@@ -213,9 +218,10 @@
         $('st-vfoot').addEventListener('click', onFootClick);
         document.addEventListener('keydown', (e) => {
             if (viewer) {
+                const typing = e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
                 if (e.key === 'Escape') closeViewer();
-                else if (e.key === 'ArrowRight') next();
-                else if (e.key === 'ArrowLeft') prev();
+                else if (!typing && e.key === 'ArrowRight') next();
+                else if (!typing && e.key === 'ArrowLeft') prev();
             } else if (e.key === 'Escape') {
                 if ($('st-comp').classList.contains('open')) closeComposer();
                 else if ($('st-list').classList.contains('open')) closeList();
@@ -403,9 +409,7 @@
 
         $('st-bars').innerHTML = g.items.map((_, k) => '<i class="' + (k < viewer.i ? 'done' : '') + '">' + (k === viewer.i ? '<u id="st-fill"></u>' : '') + '</i>').join('');
         $('st-vwho').innerHTML = avatar(g.user_id, g.username, 36) + '<span><strong>' + escapeHtml(g.is_me ? 'My status' : g.username) + '</strong><small>' + ago(item.created_at) + '</small></span>';
-        $('st-vfoot').innerHTML = g.is_me
-            ? '<button type="button" class="st-btn" data-act="views">Views (' + (item.views || 0) + ')</button><button type="button" class="st-btn" data-act="delete">Delete</button>'
-            : '';
+        paintFoot();
         $('st-viewers').classList.remove('open');
 
         if (!g.is_me && !item.viewed) {
@@ -451,6 +455,9 @@
         if (!act || !viewer) return;
         const item = viewer.group.items[viewer.i];
 
+        if (act.dataset.act === 'like') { toggleLike(item); return; }
+        if (act.dataset.act === 'comments') { openComments(item); return; }
+
         if (act.dataset.act === 'views') {
             clearTimeout(viewer.timer);
             const fill = $('st-fill');
@@ -476,6 +483,123 @@
             if (viewer.i >= g.items.length) viewer.i = g.items.length - 1;
             showItem();
         }
+    }
+
+    function paintFoot() {
+        if (!viewer) return;
+        const g = viewer.group;
+        const item = g.items[viewer.i];
+        const likes = item.likes || 0;
+        const comments = item.comments || 0;
+        $('st-vfoot').innerHTML = g.is_me
+            ? '<button type="button" class="st-btn" data-act="views">Views (' + (item.views || 0) + ')</button>'
+              + '<button type="button" class="st-btn" data-act="comments">&#9829; ' + likes + ' &middot; Comments (' + comments + ')</button>'
+              + '<button type="button" class="st-btn" data-act="delete">Delete</button>'
+            : '<button type="button" class="st-btn' + (item.liked ? ' liked' : '') + '" data-act="like" aria-pressed="' + (item.liked ? 'true' : 'false') + '">'
+              + (item.liked ? '&#9829;' : '&#9825;') + ' ' + likes + '</button>'
+              + '<button type="button" class="st-btn" data-act="comments">Comments (' + comments + ')</button>';
+    }
+
+    async function toggleLike(item) {
+        item.liked = !item.liked;
+        item.likes = Math.max(0, (item.likes || 0) + (item.liked ? 1 : -1));
+        paintFoot();
+        const r = await api('POST', '/' + item.id + '/like');
+        if (r.ok && r.data) {
+            item.liked = !!r.data.liked;
+            item.likes = r.data.likes;
+        } else {
+            item.liked = !item.liked;
+            item.likes = Math.max(0, (item.likes || 0) + (item.liked ? 1 : -1));
+            notify('Could not save your like');
+        }
+        paintFoot();
+    }
+
+    function pauseViewer() {
+        if (!viewer) return;
+        clearTimeout(viewer.timer);
+        const fill = $('st-fill');
+        if (fill) fill.style.animationPlayState = 'paused';
+    }
+
+    function commentRow(c) {
+        return '<div class="st-row" data-cid="' + c.id + '" style="cursor:default;align-items:flex-start">' + avatar(c.user_id, c.username, 34)
+            + '<span style="flex:1;min-width:0"><strong>' + escapeHtml(c.username) + '</strong> <small style="display:inline">' + ago(c.created_at) + '</small>'
+            + '<span style="display:block;white-space:pre-wrap;word-break:break-word">' + escapeHtml(c.text) + '</span></span>'
+            + (c.can_delete ? '<button type="button" class="st-x" data-del="' + c.id + '" aria-label="Delete comment">&times;</button>' : '')
+            + '</div>';
+    }
+
+    async function openComments(item) {
+        pauseViewer();
+        const panel = $('st-viewers');
+        panel.innerHTML = '<div class="st-head"><strong>Comments</strong><button type="button" class="st-x" id="st-cm-close" aria-label="Close">&times;</button></div>'
+            + '<div id="st-likers" class="st-note" hidden></div>'
+            + '<div id="st-clist"><div class="st-empty">Loading...</div></div>'
+            + '<div class="st-cform"><input type="text" id="st-cinput" maxlength="300" placeholder="Add a comment" autocomplete="off">'
+            + '<button type="button" class="st-btn" id="st-csend">Send</button></div>';
+        panel.classList.add('open');
+
+        $('st-cm-close').addEventListener('click', () => { panel.classList.remove('open'); if (viewer) showItem(); });
+        const input = $('st-cinput');
+        $('st-csend').addEventListener('click', () => sendComment(item));
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendComment(item); } });
+        $('st-clist').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-del]');
+            if (b) removeComment(item, Number(b.dataset.del));
+        });
+
+        const r = await api('GET', '/' + item.id + '/engagement');
+        if (!r.ok || !r.data) { $('st-clist').innerHTML = '<div class="st-empty">Could not load comments.</div>'; return; }
+        item.likes = r.data.likes;
+        item.liked = r.data.liked;
+        item.comments = r.data.comments.length;
+        paintFoot();
+        if (r.data.likers && r.data.likers.length) {
+            const l = $('st-likers');
+            l.hidden = false;
+            l.textContent = 'Liked by ' + r.data.likers.map(x => x.username).join(', ');
+        }
+        $('st-clist').innerHTML = r.data.comments.length
+            ? r.data.comments.map(commentRow).join('')
+            : '<div class="st-empty">No comments yet. Be the first.</div>';
+        input.focus();
+    }
+
+    async function sendComment(item) {
+        const input = $('st-cinput');
+        const text = input.value.trim();
+        if (!text) return;
+        const btn = $('st-csend');
+        btn.disabled = true;
+        const r = await api('POST', '/' + item.id + '/comments', { text: text });
+        btn.disabled = false;
+        if (r.ok && r.data && r.data.comment) {
+            input.value = '';
+            item.comments = (item.comments || 0) + 1;
+            const list = $('st-clist');
+            const empty = list.querySelector('.st-empty');
+            if (empty) empty.remove();
+            list.insertAdjacentHTML('beforeend', commentRow(r.data.comment));
+            $('st-viewers').scrollTop = $('st-viewers').scrollHeight;
+            paintFoot();
+        } else {
+            const d = r.data && r.data.detail;
+            notify(typeof d === 'string' ? d : 'Could not post your comment');
+        }
+    }
+
+    async function removeComment(item, id) {
+        if (!confirm('Delete this comment?')) return;
+        const r = await api('DELETE', '/comments/' + id);
+        if (!r.ok) { notify('Could not delete the comment'); return; }
+        const row = document.querySelector('[data-cid="' + id + '"]');
+        if (row) row.remove();
+        item.comments = Math.max(0, (item.comments || 1) - 1);
+        paintFoot();
+        const list = $('st-clist');
+        if (!list.children.length) list.innerHTML = '<div class="st-empty">No comments yet. Be the first.</div>';
     }
 
     function init() {
