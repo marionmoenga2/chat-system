@@ -94,3 +94,25 @@ class AppSecret(Base):
     __tablename__ = "app_secrets"
     key = Column(String(50), primary_key=True)
     value = Column(String(500), nullable=False)
+
+
+# ---------- Status updates (visible to everyone for 24 hours) ----------
+
+class StatusPost(Base):
+    __tablename__ = "status_posts"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    kind = Column(String(10), nullable=False, default="text")   # "text" or "image"
+    text = Column(String(500), nullable=True)
+    bg = Column(String(9), nullable=True)
+    image = deferred(Column(Text, nullable=True))
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class StatusView(Base):
+    __tablename__ = "status_views"
+    __table_args__ = (UniqueConstraint("status_id", "viewer_id", name="uq_status_view"),)
+    id = Column(Integer, primary_key=True, index=True)
+    status_id = Column(Integer, ForeignKey("status_posts.id"), nullable=False, index=True)
+    viewer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    viewed_at = Column(DateTime, default=datetime.utcnow)
