@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChatWave install check</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1220">
+<style>
+body{font-family:system-ui,sans-serif;margin:0;padding:20px;background:#0b1220;color:#e2e8f0;line-height:1.5}
+h1{font-size:1.3rem;margin:0 0 4px} p{color:#94a3b8;margin:0 0 16px}
+.row{padding:10px 12px;margin-bottom:8px;border-radius:10px;background:#111b2e;border-left:4px solid #64748b}
+.row.ok{border-color:#10b981}.row.bad{border-color:#f87171}.row.warn{border-color:#fbbf24}
+.row b{display:block}.row small{color:#94a3b8;word-break:break-word}
+button{margin-top:10px;width:100%;padding:14px;border:0;border-radius:12px;background:#10b981;color:#04211a;font-size:1rem;font-weight:700}
+button[hidden]{display:none}
+</style>
+</head>
+<body>
+<h1>ChatWave install check</h1>
+<p>Open this page in Chrome: a normal tab, not private, and not inside another app.</p>
+<div id="out"></div>
+<button id="install" hidden>Install ChatWave</button>
+<script>
+(function () {
+  var out = document.getElementById('out'), btn = document.getElementById('install'), deferred = null, rows = {};
+  function set(id, state, title, detail) {
+    var el = rows[id];
+    if (!el) { el = document.createElement('div'); rows[id] = el; out.appendChild(el); }
+    el.className = 'row ' + state;
+    el.innerHTML = '<b>' + title + '</b><small>' + (detail || '') + '</small>';
+  }
+  var ua = navigator.userAgent;
+  set('https', location.protocol === 'https:' ? 'ok' : 'bad', 'Secure connection (https)', location.protocol);
+  var inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|MiuiBrowser|OPR\/|OperaMini|; wv\)/i.test(ua);
+  set('browser', inApp ? 'bad' : 'ok', inApp ? 'This looks like an in-app or limited browser' : 'Browser looks fine', ua);
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  set('standalone', standalone ? 'warn' : 'ok', standalone ? 'Already running as an installed app' : 'Running in a browser tab', '');
+  set('prompt', 'warn', 'Install prompt', 'Waiting for Chrome...');
+  if (!('serviceWorker' in navigator)) {
+    set('sw', 'bad', 'Service worker not supported', 'This browser cannot install the app.');
+  } else {
+    navigator.serviceWorker.register('sw.js')
+      .then(function () { return navigator.serviceWorker.ready; })
+      .then(function (r) { set('sw', 'ok', 'Service worker active', 'Scope: ' + r.scope); })
+      .catch(function (e) { set('sw', 'bad', 'Service worker failed', String(e)); });
+  }
+  fetch('manifest.json').then(function (r) {
+    return r.json().then(function (m) {
+      set('manifest', r.ok ? 'ok' : 'bad', 'Manifest loaded', m.name + ' | ' + m.display + ' | ' + m.icons.length + ' icons');
+    });
+  }).catch(function (e) { set('manifest', 'bad', 'Manifest failed', String(e)); });
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); deferred = e;
+    set('prompt', 'ok', 'Chrome says this app can be installed', 'Tap the green button below.');
+    btn.hidden = false;
+  });
+  window.addEventListener('appinstalled', function () { set('prompt', 'ok', 'Installed!', ''); btn.hidden = true; });
+  btn.addEventListener('click', function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; btn.hidden = true; });
+  });
+  setTimeout(function () {
+    if (!deferred && !standalone) set('prompt', 'warn', 'Chrome has not offered an install prompt', 'Open the Chrome menu (three dots) and look for Install app. If you see it, tap it.');
+  }, 6000);
+})();
+</script>
+</body>
+</html>
