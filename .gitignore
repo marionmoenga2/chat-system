@@ -17,3 +17,11 @@ __pycache__/
 frontend/index.before-*.html
 frontend/index.old.html
 frontend/index.backup.html
+
+*.bak
+venv/
+__pycache__/
+*.db
+frontend/index.before-*.html
+frontend/index.old.html
+frontend/index.backup.html
