@@ -1,0 +1,721 @@
+"""
+Create a user from the command line.
+Run it inside the backend folder with DATABASE_URL set (see the instructions):
+    python3 create_user.py
+"""
+import getpass
+import re
+
+from app.database import SessionLocal
+from app import crud, models
+
+
+def main():
+    username = input("Username: ").strip()
+    email = input("Email: ").strip()
+    password = getpass.getpass("Password (hidden): ")
+    repeat = getpass.getpass("Repeat password: ")
+    make_admin = input("Make this person an admin? (y/N): ").strip().lower() == "y"
+
+    if not re.match(r"^[A-Za-z0-9_.-]{3,50}$", username):
+        print("Username must be 3 to 50 characters: letters, numbers, dots, dashes or underscores.")
+        return
+    if "@" not in email or "." not in email.split("@")[-1]:
+        print("That does not look like an email address.")
+        return
+    if len(password) < 8 or len(password) > 72:
+        print("The password must be 8 to 72 characters.")
+        return
+    if password != repeat:
+        print("The two passwords do not match.")
+        return
+
+    with SessionLocal() as db:
+        if crud.get_user_by_username(db, username=username):
+            print("That username is already taken.")
+            return
+        if crud.get_user_by_email(db, email=email):
+            print("That email is already registered.")
+            return
+
+        user = crud.create_user(db, username=username, email=email, password=password)
+        user.is_admin = make_admin
+        if hasattr(models.User, "is_approved"):
+            user.is_approved = True
+        db.commit()
+        print("Created %s (id %s)%s" % (username, user.id, " as an admin" if make_admin else ""))
+
+
+if __name__ == "__main__":
+    main()"""
+Create a user from the command line.
+Run it inside the backend folder with DATABASE_URL set (see the instructions):
+    python3 create_user.py
+"""
+import getpass
+import re
+
+from app.database import SessionLocal
+from app import crud, models
+
+
+def main():
+    username = input("Username: ").strip()
+    email = input("Email: ").strip()
+    password = getpass.getpass("Password (hidden): ")
+    repeat = getpass.getpass("Repeat password: ")
+    make_admin = input("Make this person an admin? (y/N): ").strip().lower() == "y"
+
+    if not re.match(r"^[A-Za-z0-9_.-]{3,50}$", username):
+        print("Username must be 3 to 50 characters: letters, numbers, dots, dashes or underscores.")
+        return
+    if "@" not in email or "." not in email.split("@")[-1]:
+        print("That does not look like an email address.")
+        return
+    if len(password) < 8 or len(password) > 72:
+        print("The password must be 8 to 72 characters.")
+        return
+    if password != repeat:
+        print("The two passwords do not match.")
+        return
+
+    with SessionLocal() as db:
+        if crud.get_user_by_username(db, username=username):
+            print("That username is already taken.")
+            return
+        if crud.get_user_by_email(db, email=email):
+            print("That email is already registered.")
+            return
+
+        user = crud.create_user(db, username=username, email=email, password=password)
+        user.is_admin = make_admin
+        if hasattr(models.User, "is_approved"):
+            user.is_approved = True
+        db.commit()
+        print("Created %s (id %s)%s" % (username, user.id, " as an admin" if make_admin else ""))
+
+
+if __name__ == "__main__":
+    main()"""
+Create a user from the command line.
+Run it inside the backend folder with DATABASE_URL set (see the instructions):
+    python3 create_user.py
+"""
+import getpass
+import re
+
+from app.database import SessionLocal
+from app import crud, models
+
+
+def main():
+    username = input("Username: ").strip()
+    email = input("Email: ").strip()
+    password = getpass.getpass("Password (hidden): ")
+    repeat = getpass.getpass("Repeat password: ")
+    make_admin = input("Make this person an admin? (y/N): ").strip().lower() == "y"
+
+    if not re.match(r"^[A-Za-z0-9_.-]{3,50}$", username):
+        print("Username must be 3 to 50 characters: letters, numbers, dots, dashes or underscores.")
+        return
+    if "@" not in email or "." not in email.split("@")[-1]:
+        print("That does not look like an email address.")
+        return
+    if len(password) < 8 or len(password) > 72:
+        print("The password must be 8 to 72 characters.")
+        return
+    if password != repeat:
+        print("The two passwords do not match.")
+        return
+
+    with SessionLocal() as db:
+        if crud.get_user_by_username(db, username=username):
+            print("That username is already taken.")
+            return
+        if crud.get_user_by_email(db, email=email):
+            print("That email is already registered.")
+            return
+
+        user = crud.create_user(db, username=username, email=email, password=password)
+        user.is_admin = make_admin
+        if hasattr(models.User, "is_approved"):
+            user.is_approved = True
+        db.commit()
+        print("Created %s (id %s)%s" % (username, user.id, " as an admin" if make_admin else ""))
+
+
+if __name__ == "__main__":
+    main()"""
+Create a user from the command line.
+Run it inside the backend folder with DATABASE_URL set (see the instructions):
+    python3 create_user.py
+"""
+import getpass
+import re
+
+from app.database import SessionLocal
+from app import crud, models
+
+
+def main():
+    username = input("Username: ").strip()
+    email = input("Email: ").strip()
+    password = getpass.getpass("Password (hidden): ")
+    repeat = getpass.getpass("Repeat password: ")
+    make_admin = input("Make this person an admin? (y/N): ").strip().lower() == "y"
+
+    if not re.match(r"^[A-Za-z0-9_.-]{3,50}$", username):
+        print("Username must be 3 to 50 characters: letters, numbers, dots, dashes or underscores.")
+        return
+    if "@" not in email or "." not in email.split("@")[-1]:
+        print("That does not look like an email address.")
+        return
+    if len(password) < 8 or len(password) > 72:
+        print("The password must be 8 to 72 characters.")
+        return
+    if password != repeat:
+        print("The two passwords do not match.")
+        return
+
+    with SessionLocal() as db:
+        if crud.get_user_by_username(db, username=username):
+            print("That username is already taken.")
+            return
+        if crud.get_user_by_email(db, email=email):
+            print("That email is already registered.")
+            return
+
+        user = crud.create_user(db, username=username, email=email, password=password)
+        user.is_admin = make_admin
+        if hasattr(models.User, "is_approved"):
+            user.is_approved = True
+        db.commit()
+        print("Created %s (id %s)%s" % (username, user.id, " as an admin" if make_admin else ""))
+
+
+if __name__ == "__main__":
+    main()<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatWave Admin - Users</title>
+
+    <style>
+        :root {
+            --emerald: #10b981;
+            --teal: #14b8a6;
+            --s900: #0b1220;
+            --s800: #111b2e;
+            --s700: #1e2b42;
+            --s400: #94a3b8;
+            --s200: #e2e8f0;
+            --danger: #f87171;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background: var(--s900);
+            color: var(--s200);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        button, input { font-family: inherit; }
+
+        .wrap { max-width: 820px; margin: 0 auto; padding: 1.2rem 1rem 3rem; }
+
+        .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .top a, .link-btn {
+            color: var(--emerald);
+            font-size: 0.88rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .top-right { display: flex; align-items: center; gap: 1rem; }
+        .link-btn {
+            padding: 0.3rem 0.8rem;
+            border: 1px solid var(--s700);
+            border-radius: 999px;
+            background: transparent;
+            color: var(--s400);
+            cursor: pointer;
+        }
+        .link-btn:hover { color: #fff; border-color: var(--s400); }
+
+        h1 { color: #fff; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+        .sub { margin: 0.3rem 0 1.2rem; color: var(--s400); font-size: 0.92rem; }
+
+        .card {
+            margin-bottom: 1.2rem;
+            padding: 1.2rem;
+            border: 1px solid var(--s700);
+            border-radius: 18px;
+            background: var(--s800);
+        }
+        .card h2 { margin-bottom: 0.9rem; color: #fff; font-size: 1.1rem; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+
+        label.f { display: block; margin-bottom: 0.8rem; color: var(--s400); font-size: 0.8rem; font-weight: 700; }
+
+        input[type="text"], input[type="email"], input[type="password"] {
+            display: block;
+            width: 100%;
+            margin-top: 0.3rem;
+            padding: 0.7rem 0.85rem;
+            border: 2px solid var(--s700);
+            border-radius: 12px;
+            background: var(--s900);
+            color: #fff;
+            font-size: 1rem;
+        }
+        input:focus { outline: none; border-color: var(--emerald); }
+
+        .pw { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+        .pw input { margin-top: 0; flex: 1; min-width: 0; }
+
+        .check { display: flex; align-items: center; gap: 0.6rem; margin: 0.2rem 0 1rem; color: var(--s200); font-size: 0.92rem; }
+        .check input { width: 18px; height: 18px; accent-color: var(--emerald); }
+
+        .btn {
+            padding: 0.75rem 1.2rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, var(--emerald), var(--teal));
+            color: #04211a;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .btn:hover { filter: brightness(1.08); }
+        .btn:disabled { opacity: 0.6; cursor: wait; }
+        .btn.ghost { background: var(--s700); color: var(--s200); font-weight: 700; }
+        .btn.sm { padding: 0.5rem 0.9rem; font-size: 0.82rem; }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--emerald);
+            border-radius: 14px;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .result[hidden] { display: none; }
+        .result b { color: #fff; }
+        .result pre {
+            margin: 0.6rem 0;
+            padding: 0.7rem 0.9rem;
+            border-radius: 10px;
+            background: var(--s900);
+            color: #fff;
+            font-size: 0.95rem;
+            overflow-x: auto;
+        }
+        .result small { display: block; margin-bottom: 0.7rem; color: var(--s400); }
+        .result .row-btns { display: flex; gap: 0.5rem; }
+
+        .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.8rem; }
+        .toolbar h2 { margin: 0; }
+        .count { margin-left: 0.4rem; padding: 0.1rem 0.6rem; border-radius: 999px; background: var(--s700); color: var(--s400); font-size: 0.78rem; }
+        #filter { width: 220px; max-width: 50%; margin-top: 0; padding: 0.55rem 0.8rem; font-size: 0.9rem; }
+
+        .urow {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid var(--s700);
+        }
+        .urow:last-child { border-bottom: none; }
+        .av {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: #fff;
+            font-weight: 700;
+        }
+        .u-info { flex: 1; min-width: 0; }
+        .u-name { color: #fff; font-weight: 700; overflow-wrap: anywhere; }
+        .u-mail { color: var(--s400); font-size: 0.82rem; overflow-wrap: anywhere; }
+        .badges { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.3rem; }
+        .badge { padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.68rem; font-weight: 800; background: var(--s700); color: var(--s400); }
+        .badge.admin { background: rgba(16, 185, 129, 0.18); color: var(--emerald); }
+        .badge.bad { background: rgba(248, 113, 113, 0.16); color: var(--danger); }
+        .badge.wait { background: rgba(250, 204, 21, 0.16); color: #facc15; }
+        .empty { padding: 1.5rem; text-align: center; color: var(--s400); }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(2, 6, 23, 0.7);
+        }
+        .modal.open { display: flex; }
+        .modal-card {
+            width: 100%;
+            max-width: 420px;
+            padding: 1.4rem;
+            border: 1px solid var(--s700);
+            border-radius: 20px;
+            background: var(--s800);
+        }
+        .modal-card h2 { margin-bottom: 0.3rem; color: #fff; font-size: 1.15rem; }
+        .modal-card p { margin-bottom: 0.9rem; color: var(--s400); font-size: 0.88rem; }
+        .modal-actions { display: flex; gap: 0.6rem; margin-top: 1rem; }
+        .modal-actions .btn { flex: 1; }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 1.5rem;
+            z-index: 100;
+            max-width: calc(100% - 2rem);
+            padding: 0.8rem 1.2rem;
+            border-radius: 14px;
+            background: #fff;
+            color: #0f172a;
+            font-weight: 700;
+            box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.6);
+            transform: translate(-50%, 140%);
+            transition: transform 0.3s ease;
+        }
+        .toast.show { transform: translate(-50%, 0); }
+
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: 1fr; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            #filter { width: 100%; max-width: none; }
+            input[type="text"], input[type="email"], input[type="password"] { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="top">
+            <a href="dashboard.html">&larr; Dashboard</a>
+            <div class="top-right">
+                <a href="messages.html">Messages</a>
+                <button type="button" class="link-btn" id="logout">Logout</button>
+            </div>
+        </div>
+
+        <h1>Users</h1>
+        <p class="sub">Add people directly, without the sign-up page, and reset passwords.</p>
+
+        <!-- Add a user -->
+        <section class="card">
+            <h2>Add a user</h2>
+            <form id="add-form" autocomplete="off">
+                <div class="grid">
+                    <label class="f">Username
+                        <input type="text" id="nu-username" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+                    </label>
+                    <label class="f">Email
+                        <input type="email" id="nu-email" autocomplete="off" required>
+                    </label>
+                </div>
+
+                <label class="f">Password (at least 8 characters)
+                    <div class="pw">
+                        <input type="password" id="nu-password" autocomplete="new-password" required>
+                        <button type="button" class="btn ghost sm" id="nu-show">Show</button>
+                        <button type="button" class="btn ghost sm" id="nu-generate">Generate</button>
+                    </div>
+                </label>
+
+                <label class="check"><input type="checkbox" id="nu-admin"> Make this person an administrator</label>
+
+                <button type="submit" class="btn" id="nu-submit">Create user</button>
+            </form>
+
+            <div class="result" id="result" hidden></div>
+        </section>
+
+        <!-- Everyone -->
+        <section class="card">
+            <div class="toolbar">
+                <h2>Everyone <span class="count" id="count">0</span></h2>
+                <input type="text" id="filter" placeholder="Search users..." autocomplete="off">
+            </div>
+            <div id="list"><div class="empty">Loading...</div></div>
+        </section>
+    </div>
+
+    <!-- Reset password dialog -->
+    <div class="modal" id="reset-modal">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="rp-title">
+            <h2 id="rp-title">Reset password</h2>
+            <p>Set a new password for <b id="rp-name"></b>. Their old password stops working straight away.</p>
+            <div class="pw">
+                <input type="password" id="rp-password" autocomplete="new-password" placeholder="New password (8+ characters)">
+                <button type="button" class="btn ghost sm" id="rp-generate">Generate</button>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn ghost" id="rp-cancel">Cancel</button>
+                <button type="button" class="btn" id="rp-save">Save password</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <!-- config.js defines API_URL -->
+    <script src="js/config.js"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        const $ = (id) => document.getElementById(id);
+        const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ESC[c]);
+
+        // ---------- Admin only ----------
+        const token = localStorage.getItem('token');
+        let me = null;
+        try { me = JSON.parse(localStorage.getItem('user') || 'null'); } catch (e) { /* ignore */ }
+
+        if (!token || !me || !me.is_admin || typeof API_URL === 'undefined') {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        let users = [];
+        let resetTarget = null;
+
+        // ---------- Helpers ----------
+        const COLORS = [['#10b981', '#14b8a6'], ['#06b6d4', '#3b82f6'], ['#8b5cf6', '#ec4899'],
+                        ['#f59e0b', '#ef4444'], ['#22d3ee', '#6366f1'], ['#84cc16', '#10b981']];
+
+        function grad(name) {
+            let h = 0;
+            const s = String(name || '');
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+            const c = COLORS[h % COLORS.length];
+            return `linear-gradient(135deg, ${c[0]}, ${c[1]})`;
+        }
+
+        let toastTimer;
+        function toast(text) {
+            const el = $('toast');
+            el.textContent = text;
+            el.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+        }
+
+        function logout() {
+            ['token', 'user', 'admin_token', 'admin_user'].forEach((k) => localStorage.removeItem(k));
+            window.location.href = 'index.html?logout=1';
+        }
+
+        // Returns { ok, status, data }, or null if the server could not be reached
+        async function api(method, path, body) {
+            try {
+                const res = await fetch(API_URL + path, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: body ? JSON.stringify(body) : undefined
+                });
+                if (res.status === 401) { logout(); return null; }
+                let data = null;
+                try { data = await res.json(); } catch (e) { /* no body */ }
+                return { ok: res.ok, status: res.status, data: data };
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function detailText(res, fallback) {
+            const d = res && res.data && res.data.detail;
+            if (typeof d === 'string') return d;
+            if (Array.isArray(d)) return d.map((x) => x.msg).join('; ');
+            return res ? fallback : 'Cannot reach the server. Please try again.';
+        }
+
+        function generatePassword() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+            const bytes = new Uint32Array(14);
+            crypto.getRandomValues(bytes);
+            return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+        }
+
+        function copyText(text, done) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done).catch(() => {});
+                return;
+            }
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ }
+            ta.remove();
+        }
+
+        // ---------- Result panel (shown once after creating a user or resetting a password) ----------
+        function showResult(title, username, password) {
+            const box = $('result');
+            box.innerHTML = `
+                <b>${esc(title)}</b>
+                <pre>Username: ${esc(username)}\nPassword: ${esc(password)}</pre>
+                <small>Share these details privately and ask the person to change the password after signing in. This is shown only now.</small>
+                <div class="row-btns">
+                    <button type="button" class="btn sm" id="res-copy">Copy details</button>
+                    <button type="button" class="btn ghost sm" id="res-hide">Hide</button>
+                </div>`;
+            box.hidden = false;
+            $('res-copy').addEventListener('click', () => {
+                copyText(`Username: ${username}\nPassword: ${password}`, () => toast('Copied'));
+            });
+            $('res-hide').addEventListener('click', () => { box.hidden = true; box.innerHTML = ''; });
+            box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // ---------- Everyone ----------
+        function render() {
+            const q = $('filter').value.trim().toLowerCase();
+            const list = users.filter((u) =>
+                u.username.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q));
+
+            $('count').textContent = users.length;
+            $('list').innerHTML = list.length ? list.map((u) => `
+                <div class="urow">
+                    <span class="av" style="background:${grad(u.username)}">${esc(u.username.charAt(0).toUpperCase())}</span>
+                    <div class="u-info">
+                        <div class="u-name">${esc(u.username)}</div>
+                        <div class="u-mail">${esc(u.email)}</div>
+                        <div class="badges">
+                            ${u.is_admin ? '<span class="badge admin">Admin</span>' : ''}
+                            ${u.is_active ? '' : '<span class="badge bad">Banned</span>'}
+                            ${u.is_approved ? '' : '<span class="badge wait">Waiting for approval</span>'}
+                        </div>
+                    </div>
+                    <button type="button" class="btn ghost sm" data-reset="${u.id}">Reset password</button>
+                </div>`).join('') : '<div class="empty">No users found</div>';
+        }
+
+        async function load() {
+            const res = await api('GET', '/api/admin-users/');
+            if (res && res.ok) {
+                users = res.data;
+                render();
+            } else {
+                $('list').innerHTML = `<div class="empty">${esc(detailText(res, 'Could not load the users'))}</div>`;
+            }
+        }
+
+        // ---------- Add a user ----------
+        async function createUser(e) {
+            e.preventDefault();
+            const username = $('nu-username').value.trim();
+            const email = $('nu-email').value.trim();
+            const password = $('nu-password').value;
+            const isAdmin = $('nu-admin').checked;
+
+            if (!username || !email || !password) { toast('Fill in all the fields'); return; }
+            if (isAdmin && !confirm('Make this person an administrator? They will have full access to this panel.')) return;
+
+            const btn = $('nu-submit');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+
+            const res = await api('POST', '/api/admin-users/', {
+                username: username, email: email, password: password, is_admin: isAdmin
+            });
+
+            btn.disabled = false;
+            btn.textContent = 'Create user';
+
+            if (res && res.ok) {
+                showResult('User created', username, password);
+                $('add-form').reset();
+                $('nu-password').type = 'password';
+                $('nu-show').textContent = 'Show';
+                toast('User created');
+                load();
+            } else {
+                toast(detailText(res, 'Could not create the user'));
+            }
+        }
+
+        // ---------- Reset a password ----------
+        function openReset(id) {
+            const u = users.find((x) => x.id === id);
+            if (!u) return;
+            resetTarget = u;
+            $('rp-name').textContent = u.username;
+            $('rp-password').value = '';
+            $('rp-password').type = 'password';
+            $('reset-modal').classList.add('open');
+            $('rp-password').focus();
+        }
+
+        function closeReset() {
+            $('reset-modal').classList.remove('open');
+            resetTarget = null;
+        }
+
+        async function saveReset() {
+            if (!resetTarget) return;
+            const password = $('rp-password').value;
+            if (password.length < 8) { toast('The password must be at least 8 characters'); return; }
+
+            const btn = $('rp-save');
+            btn.disabled = true;
+            const res = await api('PUT', `/api/admin-users/${resetTarget.id}/password`, { password: password });
+            btn.disabled = false;
+
+            if (res && res.ok) {
+                const name = resetTarget.username;
+                closeReset();
+                showResult('Password reset', name, password);
+                toast('Password updated');
+            } else {
+                toast(detailText(res, 'Could not reset the password'));
+            }
+        }
+
+        // ---------- Wiring ----------
+        $('logout').addEventListener('click', logout);
+        $('add-form').addEventListener('submit', createUser);
+        $('filter').addEventListener('input', render);
+
+        $('nu-show').addEventListener('click', () => {
+            const input = $('nu-password');
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            $('nu-show').textContent = show ? 'Hide' : 'Show';
+        });
+        $('nu-generate').addEventListener('click', () => {
+            $('nu-password').value = generatePassword();
+            $('nu-password').type = 'text';
+            $('nu-show').textContent = 'Hide';
+        });
+
+        $('list').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-reset]');
+            if (btn) openReset(Number(btn.dataset.reset));
+        });
+        $('rp-generate').addEventListener('click', () => {
+            $('rp-password').value = generatePassword();
+            $('rp-password').type = 'text';
+        });
+        $('rp-cancel').addEventListener('click', closeReset);
+        $('rp-save').addEventListener('click', saveReset);
+        $('reset-modal').addEventListener('click', (e) => { if (e.target === $('reset-modal')) closeReset(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeReset(); });
+
+        load();
+    })();
+    </script>
+</body>
+</html>
