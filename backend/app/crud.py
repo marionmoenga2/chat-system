@@ -2,7 +2,10 @@
 CRUD (Create, Read, Update, Delete) operations for the database.
 """
 from sqlalchemy import or_
+from types import SimpleNamespace
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
+from app.database import Base
 from app.models import User, Message
 from app.auth import get_password_hash
 from datetime import datetime
@@ -40,12 +43,40 @@ def update_user_status(db: Session, user_id: int, is_active: bool):
         db.refresh(user)
     return user
 
+def _purge(db: Session, table, condition, depth: int = 0):
+    """
+    Delete the rows of `table` that match `condition`.
+    Anything in another table that points at those rows is dealt with first:
+    optional links are cleared, required ones are deleted (following the chain).
+    """
+    if depth > 8:
+        return
+    for child in Base.metadata.sorted_tables:
+        for fk in child.foreign_keys:
+            if fk.column.table is not table:
+                continue
+            ref = fk.parent.in_(select(fk.column).where(condition))
+            if fk.parent.nullable:
+                db.execute(update(child).where(ref).values({fk.parent.name: None}))
+            elif child is not table:
+                _purge(db, child, ref, depth + 1)
+    db.execute(delete(table).where(condition))
+
+
 def delete_user(db: Session, user_id: int):
+    """Permanently delete a user and everything that belongs to them."""
     user = get_user_by_id(db, user_id)
-    if user:
-        db.delete(user)
+    if not user:
+        return None
+    info = SimpleNamespace(id=user.id, username=user.username, email=user.email, is_admin=bool(user.is_admin))
+    db.expunge(user)
+    try:
+        _purge(db, User.__table__, User.__table__.c.id == user_id)
         db.commit()
-    return user
+    except Exception:
+        db.rollback()
+        raise
+    return info
 
 # --- Message CRUD ---
 def create_message(db: Session, sender_id: int, receiver_id: int, content: str):
