@@ -104,3 +104,53 @@ def set_my_phone(
     user.phone = body.phone
     db.commit()
     return {"phone": body.phone}
+
+
+# ---------- Change my own email ----------
+from sqlalchemy import func
+from app import models
+
+
+class EmailUpdate(BaseModel):
+    email: str
+    current_password: str
+
+    @field_validator("email")
+    @classmethod
+    def clean_email(cls, v):
+        v = (v or "").strip().lower()
+        if len(v) > 100 or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v):
+            raise ValueError("Enter a valid email address")
+        return v
+
+
+@router.put("/me/email")
+def set_my_email(
+    body: EmailUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(auth_utils.get_current_user)
+):
+    """Change your own email. Needs your current password, and the email must not belong to someone else."""
+    user = crud.get_user_by_id(db, current_user.id)
+    if not auth_utils.verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    taken = db.query(models.User).filter(
+        func.lower(models.User.email) == body.email, models.User.id != user.id
+    ).first()
+    if taken:
+        raise HTTPException(status_code=400, detail="That email is already used by another account")
+    user.email = body.email
+    db.commit()
+    return {"email": user.email}
+
+
+@router.get("/me/email")
+def get_my_email(current_user = Depends(auth_utils.get_current_user)):
+    """The logged-in user's own email address."""
+    return {"email": current_user.email}
+
+
+@router.get("/me/email")
+def get_my_email(current_user = Depends(auth_utils.get_current_user)):
+    """The logged-in user's own email address."""
+    return {"email": current_user.email}
