@@ -79,7 +79,7 @@
 
     function iceServers() {
         if (typeof CALL_ICE_SERVERS !== 'undefined' && Array.isArray(CALL_ICE_SERVERS) && CALL_ICE_SERVERS.length) return CALL_ICE_SERVERS;
-        return [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
+        return window.CHATWAVE_ICE_SERVERS || [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
     }
     function supportsCalls() { return !!(window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
     function makeId() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
