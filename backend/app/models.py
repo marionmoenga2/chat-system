@@ -16,6 +16,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)  # For banning users
     # New sign-ups wait for an admin; existing users are approved by the migration
     is_approved = Column(Boolean, default=False, nullable=False, server_default=true())
+    last_seen = Column(DateTime, nullable=True)  # when they were last online (UTC)
+    show_last_seen = Column(Boolean, default=True, nullable=False, server_default=true())  # privacy switch
     created_at = Column(DateTime, default=datetime.utcnow)
     # "deferred" columns are only loaded when asked for, so listing users stays fast.
     avatar = deferred(Column(Text, nullable=True))        # profile photo as a small data URL
@@ -148,5 +150,20 @@ class VoiceNote(Base):
     group_id = Column(Integer, ForeignKey("chat_groups.id"), nullable=True, index=True)
     mime = Column(String(40), nullable=False)
     seconds = Column(Integer, default=0)
+    data = deferred(Column(LargeBinary, nullable=False))
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ---------- Photos and files ----------
+class FileAttachment(Base):
+    __tablename__ = "file_attachments"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    group_id = Column(Integer, ForeignKey("chat_groups.id"), nullable=True, index=True)
+    name = Column(String(120), nullable=False)
+    mime = Column(String(100), nullable=False)
+    kind = Column(String(10), nullable=False)   # "image" or "file"
+    size = Column(Integer, default=0)
     data = deferred(Column(LargeBinary, nullable=False))
     created_at = Column(DateTime, default=datetime.utcnow, index=True)

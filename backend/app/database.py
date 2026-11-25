@@ -49,3 +49,21 @@ def ensure_approval_column():
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE users ADD COLUMN is_approved BOOLEAN NOT NULL DEFAULT " + default))
     print("Migration: added users.is_approved (existing users stay approved)")
+
+
+
+def ensure_last_seen_columns():
+    """Add users.last_seen and users.show_last_seen to an existing database."""
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    if "users" not in insp.get_table_names():
+        return
+    cols = [c["name"] for c in insp.get_columns("users")]
+    true_value = "1" if engine.url.get_backend_name() == "sqlite" else "TRUE"
+    with engine.begin() as conn:
+        if "last_seen" not in cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN last_seen TIMESTAMP"))
+            print("Migration: added users.last_seen")
+        if "show_last_seen" not in cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN show_last_seen BOOLEAN NOT NULL DEFAULT " + true_value))
+            print("Migration: added users.show_last_seen")

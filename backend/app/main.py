@@ -3,11 +3,12 @@ Main FastAPI application entry point.
 """
 import os
 import json
+from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from app.database import engine, Base, SessionLocal, ensure_approval_column
+from app.database import engine, Base, SessionLocal, ensure_approval_column, ensure_last_seen_columns
 from app import auth, crud, models
 from app.websocket_manager import manager
 from app import group_calls
@@ -16,11 +17,13 @@ from app.routers import auth as auth_router, users, messages, admin, extras, gro
 from app.routers import unread as unread_router
 from app.routers import status as status_router
 from app.routers import voice as voice_router
+from app.routers import files as files_router
 from app.routers.extras import serialize_message
 from app.routers.groups import serialize_group_message, get_membership, member_ids_of
 
 Base.metadata.create_all(bind=engine)
 ensure_approval_column()
+ensure_last_seen_columns()
 auth.SECRET_KEY = os.getenv("SECRET_KEY", "change-this-in-production")
 
 app = FastAPI(
@@ -50,6 +53,17 @@ app.include_router(admin_messages.router)
 app.include_router(unread_router.router)
 app.include_router(status_router.router)
 app.include_router(voice_router.router)
+app.include_router(files_router.router)
+
+def touch_last_seen(user_id: int):
+    """Remember when this person was last online (UTC)."""
+    try:
+        with SessionLocal() as db:
+            db.query(models.User).filter(models.User.id == user_id).update({"last_seen": datetime.utcnow()})
+            db.commit()
+    except Exception as exc:
+        print("last_seen update failed:", repr(exc))
+
 
 # Call setup messages that are relayed between users
 CALL_TYPES = {
@@ -179,6 +193,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
         return
 
     await manager.connect(websocket, user_id)
+    touch_last_seen(user_id)
     if not is_admin and settings_store.get_bool("maintenance_mode"):
         await manager.send_personal_message({
             "type": "maintenance", "on": True,
@@ -251,11 +266,13 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
     except WebSocketDisconnect:
         await group_calls.leave_all(user_id)
         manager.disconnect(user_id)
+        touch_last_seen(user_id)
         await manager.broadcast({
             "type": "user_status",
             "user_id": user_id,
             "username": username,
-            "status": "offline"
+            "status": "offline",
+            "last_seen": datetime.utcnow().isoformat() + "Z"
         })
 
 

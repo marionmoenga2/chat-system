@@ -25,3 +25,5 @@ __pycache__/
 frontend/index.before-*.html
 frontend/index.old.html
 frontend/index.backup.html
+
+*.bak*
