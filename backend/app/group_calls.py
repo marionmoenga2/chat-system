@@ -1,20 +1,35 @@
 """
 Group call rooms. The server only tracks who is in a call and who is invited;
-audio/video flows directly between browsers (mesh WebRTC).
+audio and video flow directly between the browsers (everyone connects to everyone).
 """
 from typing import Dict, Set
-from app.websocket_manager import manager
-from app import settings_store
 
-# Maximum call size is an admin setting (see settings_store)
+from app.websocket_manager import manager
+
+try:
+    from app import settings_store
+except Exception:   # the admin "settings" feature is optional
+    settings_store = None
+
 GROUP_CALL_TYPES = {"call_start", "call_invite", "call_join", "call_decline", "call_leave"}
+DEFAULT_MAX = 6
+
+
+def _limit() -> int:
+    if settings_store is not None:
+        try:
+            return int(settings_store.get_int("max_call_participants"))
+        except Exception:
+            pass
+    return DEFAULT_MAX
 
 
 class CallRoom:
-    def __init__(self, call_id: str, host_id: int, video: bool):
+    def __init__(self, call_id: str, host_id: int, video: bool, title: str = ""):
         self.call_id = call_id
         self.host_id = host_id
         self.video = video
+        self.title = title
         self.members: Dict[int, str] = {}   # user_id -> username
         self.invited: Set[int] = set()
 
@@ -34,7 +49,7 @@ def _members_list(room: CallRoom):
 def _ids(value):
     out = []
     if isinstance(value, list):
-        for v in value[:10]:
+        for v in value[:20]:
             try:
                 out.append(int(v))
             except (TypeError, ValueError):
@@ -53,11 +68,10 @@ async def _invite(room: CallRoom, inviter_id: int, inviter_name: str, target_id:
         return
     if not manager.is_user_online(target_id):
         await manager.send_personal_message(
-            {"type": "call_unavailable", "from_id": target_id, "call_id": room.call_id},
-            inviter_id,
+            {"type": "call_unavailable", "from_id": target_id, "call_id": room.call_id}, inviter_id
         )
         return
-    limit = settings_store.get_int("max_call_participants")
+    limit = _limit()
     if len(room.members) + len(room.invited) >= limit:
         await manager.send_personal_message(
             {"type": "call_full", "call_id": room.call_id, "max": limit}, inviter_id
@@ -70,6 +84,7 @@ async def _invite(room: CallRoom, inviter_id: int, inviter_name: str, target_id:
         "from_id": inviter_id,
         "from_username": inviter_name,
         "video": room.video,
+        "title": room.title,
         "participants": _members_list(room),
     }, target_id)
 
@@ -77,9 +92,7 @@ async def _invite(room: CallRoom, inviter_id: int, inviter_name: str, target_id:
 async def _close_room(room: CallRoom):
     rooms.pop(room.call_id, None)
     for uid in list(room.members) + list(room.invited):
-        await manager.send_personal_message(
-            {"type": "call_ended", "call_id": room.call_id}, uid
-        )
+        await manager.send_personal_message({"type": "call_ended", "call_id": room.call_id}, uid)
 
 
 async def leave(user_id: int, call_id: str):
@@ -89,18 +102,14 @@ async def leave(user_id: int, call_id: str):
     room.invited.discard(user_id)
     if user_id in room.members:
         del room.members[user_id]
-        await _send_to_members(room, {
-            "type": "call_participant_left", "call_id": call_id, "user_id": user_id
-        })
-    # A call with nobody left to talk to (and nobody pending) is over
-    if len(room.members) <= 1 and not room.invited:
+        await _send_to_members(room, {"type": "call_participant_left", "call_id": call_id, "user_id": user_id})
+    if len(room.members) == 0 or (len(room.members) <= 1 and not room.invited):
         await _close_room(room)
 
 
 async def leave_all(user_id: int):
     """Call this when a user's WebSocket disconnects."""
-    for call_id in [cid for cid, r in rooms.items()
-                    if user_id in r.members or user_id in r.invited]:
+    for call_id in [cid for cid, r in rooms.items() if user_id in r.members or user_id in r.invited]:
         await leave(user_id, call_id)
 
 
@@ -112,7 +121,7 @@ async def handle(user_id: int, username: str, msg_type: str, data: dict):
     if msg_type == "call_start":
         if call_id in rooms:
             return
-        room = CallRoom(call_id, user_id, bool(data.get("video")))
+        room = CallRoom(call_id, user_id, bool(data.get("video")), str(data.get("title") or "")[:60])
         room.members[user_id] = username
         rooms[call_id] = room
         for target in _ids(data.get("invite_ids")):
@@ -126,33 +135,26 @@ async def handle(user_id: int, username: str, msg_type: str, data: dict):
         return
 
     if msg_type == "call_invite":
-        if user_id not in room.members:      # only people in the call can add others
+        if user_id not in room.members:
             return
         for target in _ids(data.get("invite_ids")):
             await _invite(room, user_id, username, target)
 
     elif msg_type == "call_join":
-        if user_id not in room.invited:      # must have been invited
+        if user_id not in room.invited:
             return
         existing = _members_list(room)
         room.invited.discard(user_id)
         room.members[user_id] = username
-        # Tell the newcomer who is already there; they send an offer to each of them
-        await manager.send_personal_message(
-            {"type": "call_joined", "call_id": call_id, "participants": existing}, user_id
-        )
-        # Tell everyone else to expect an offer from the newcomer
+        await manager.send_personal_message({"type": "call_joined", "call_id": call_id, "participants": existing}, user_id)
         await _send_to_members(room, {
-            "type": "call_participant_joined",
-            "call_id": call_id, "user_id": user_id, "username": username,
+            "type": "call_participant_joined", "call_id": call_id, "user_id": user_id, "username": username,
         }, exclude=user_id)
 
     elif msg_type == "call_decline":
         if user_id in room.invited:
+            await _send_to_members(room, {"type": "call_declined", "call_id": call_id, "user_id": user_id})
             await leave(user_id, call_id)
-            await _send_to_members(room, {
-                "type": "call_declined", "call_id": call_id, "user_id": user_id
-            })
 
     elif msg_type == "call_leave":
         await leave(user_id, call_id)

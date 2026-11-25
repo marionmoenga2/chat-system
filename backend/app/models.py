@@ -134,3 +134,19 @@ class StatusComment(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     text = Column(String(300), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ---------- Voice notes ----------
+from sqlalchemy import LargeBinary
+
+
+class VoiceNote(Base):
+    __tablename__ = "voice_notes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    group_id = Column(Integer, ForeignKey("chat_groups.id"), nullable=True, index=True)
+    mime = Column(String(40), nullable=False)
+    seconds = Column(Integer, default=0)
+    data = deferred(Column(LargeBinary, nullable=False))
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

@@ -10,10 +10,12 @@ from sqlalchemy.orm import Session
 from app.database import engine, Base, SessionLocal, ensure_approval_column
 from app import auth, crud, models
 from app.websocket_manager import manager
+from app import group_calls
 from app import settings_store
 from app.routers import auth as auth_router, users, messages, admin, extras, groups, admin_messages, ai, admin_users
 from app.routers import unread as unread_router
 from app.routers import status as status_router
+from app.routers import voice as voice_router
 from app.routers.extras import serialize_message
 from app.routers.groups import serialize_group_message, get_membership, member_ids_of
 
@@ -47,6 +49,7 @@ app.include_router(ai.router)
 app.include_router(admin_messages.router)
 app.include_router(unread_router.router)
 app.include_router(status_router.router)
+app.include_router(voice_router.router)
 
 # Call setup messages that are relayed between users
 CALL_TYPES = {
@@ -110,6 +113,8 @@ def process_group(db: Session, user_id: int, message_data: dict, content: str):
 async def relay_call(user_id: int, username: str, receiver_id: int, msg_type: str, data: dict):
     """Pass a call setup message to the other person (only known fields, size limited)."""
     call_id = str(data.get("call_id") or "")[:64]
+    if call_id in group_calls.rooms and not group_calls.same_call(call_id, user_id, receiver_id):
+        return
     relay = {
         "type": msg_type,
         "from_id": user_id,
@@ -229,6 +234,9 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                         "username": username
                     }, receiver_id)
 
+                elif msg_type in group_calls.GROUP_CALL_TYPES:
+                    await group_calls.handle(user_id, username, msg_type, message_data)
+
                 elif msg_type in CALL_TYPES and receiver_id and receiver_id != user_id:
                     await relay_call(user_id, username, receiver_id, msg_type, message_data)
 
@@ -241,6 +249,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                 print("WebSocket handler error:", repr(exc))
 
     except WebSocketDisconnect:
+        await group_calls.leave_all(user_id)
         manager.disconnect(user_id)
         await manager.broadcast({
             "type": "user_status",

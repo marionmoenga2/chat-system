@@ -8,6 +8,7 @@
 
     let groups = [];
     let selectedGroupId = null;
+    window.getSelectedGroupId = function () { return selectedGroupId; };
     let activeTab = 'chats';
     let groupUnread = {};
     let infoData = null;
@@ -282,6 +283,7 @@
         const btn = $('group-header-btn');
         btn.addEventListener('click', openInfo);
         btn.addEventListener('keydown', (e) => { if (e.key === 'Enter') openInfo(); });
+        if (window.addGroupCallButtons) window.addGroupCallButtons(g.id, g.name);
     }
 
     function resetConversation() {
